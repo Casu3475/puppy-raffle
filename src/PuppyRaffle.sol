@@ -20,6 +20,7 @@ contract PuppyRaffle is ERC721, Ownable {
 
     uint256 public immutable entranceFee;
 
+    // how long the raffle lasts
     address[] public players;
     uint256 public raffleDuration;
     uint256 public raffleStartTime;
@@ -80,6 +81,7 @@ contract PuppyRaffle is ERC721, Ownable {
     function enterRaffle(address[] memory newPlayers) public payable {
         require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
         for (uint256 i = 0; i < newPlayers.length; i++) {
+            // what resets the players array?
             players.push(newPlayers[i]);
         }
 
@@ -95,10 +97,12 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @param playerIndex the index of the player to refund. You can find it externally by calling `getActivePlayerIndex`
     /// @dev This function will allow there to be blank spots in the array
     function refund(uint256 playerIndex) public {
+        // @audit MEV
         address playerAddress = players[playerIndex];
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
         require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active");
 
+        // @audit Reentrancy
         payable(msg.sender).sendValue(entranceFee);
 
         players[playerIndex] = address(0);
@@ -114,6 +118,8 @@ contract PuppyRaffle is ERC721, Ownable {
                 return i;
             }
         }
+        // what if the player is at index 0?
+        // @audit if the player is at index 0, it will return 0, which is the same as not being in the array, and a player may think they are not active !
         return 0;
     }
 
@@ -124,8 +130,12 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @dev we reset the active players array after the winner is selected
     /// @dev we send 80% of the funds to the winner, the other 20% goes to the feeAddress
     function selectWinner() external {
+        // q does this follow CEI ?
+        // q are the duratiuon & start time set correctly?
         require(block.timestamp >= raffleStartTime + raffleDuration, "PuppyRaffle: Raffle not over");
         require(players.length >= 4, "PuppyRaffle: Need at least 4 players");
+
+        // @audit randomness ?
         uint256 winnerIndex =
             uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp, block.difficulty))) % players.length;
         address winner = players[winnerIndex];
