@@ -536,3 +536,113 @@ Also, true winners would not be able to get paid out, and someone else would win
 
 1. Do not allow smart contract wallet entrants (not recommended)
 2. Create a mapping of addresses -> payout so winners can pull their funds out themselves, putting the owness on the winner to claim their prize. (Recommended)
+
+### [I-1] Floating pragmas
+
+**Description:** Contracts should use strict versions of solidity. Locking the version ensures that contracts are not deployed with a different version of solidity than they were tested with.
+
+https://swcregistry.io/docs/SWC-103/
+
+**Impact:** An incorrect version could lead to uninteded results.
+
+**Recommended Mitigation:** Lock up pragma versions. and using an outdated version of Solidity is not recommended
+
+- pragma solidity ^0.7.6;
+
+* pragma solidity 0.7.6;
+
+### [I-2] ] Magic Numbers
+
+**Description:** All number literals should be replaced with constants. This makes the code more readable and easier to maintain. Numbers without context are called "magic numbers".
+
+**Recommended Mitigation:** Replace all magic numbers with constants.
+
+-       uint256 public constant PRIZE_POOL_PERCENTAGE = 80;
+-       uint256 public constant FEE_PERCENTAGE = 20;
+-       uint256 public constant TOTAL_PERCENTAGE = 100;
+  .
+  .
+  .
+
+*        uint256 prizePool = (totalAmountCollected * 80) / 100;
+*        uint256 fee = (totalAmountCollected * 20) / 100;
+         uint256 prizePool = (totalAmountCollected * PRIZE_POOL_PERCENTAGE) / TOTAL_PERCENTAGE;
+         uint256 fee = (totalAmountCollected * FEE_PERCENTAGE) / TOTAL_PERCENTAGE;
+
+### [I-3] Test Coverage
+
+**Description:** The test coverage of the tests are below 90%. This often means that there are parts of the code that are not tested.
+
+| File                               | % Lines        | % Statements   | % Branches     | % Funcs       |
+| ---------------------------------- | -------------- | -------------- | -------------- | ------------- |
+| script/DeployPuppyRaffle.sol       | 0.00% (0/3)    | 0.00% (0/4)    | 100.00% (0/0)  | 0.00% (0/1)   |
+| src/PuppyRaffle.sol                | 82.46% (47/57) | 83.75% (67/80) | 66.67% (20/30) | 77.78% (7/9)  |
+| test/auditTests/ProofOfCodes.t.sol | 100.00% (7/7)  | 100.00% (8/8)  | 50.00% (1/2)   | 100.00% (2/2) |
+| Total                              | 80.60% (54/67) | 81.52% (75/92) | 65.62% (21/32) | 75.00% (9/12) |
+
+**Recommended Mitigation:** Increase test coverage to 90% or higher, especially for the Branches column.
+
+### [I-4] Zero address validation
+
+**Description:** The PuppyRaffle contract does not validate that the feeAddress is not the zero address.
+
+**Impact:** This means that the feeAddress could be set to the zero address, and fees would be lost.
+
+```javascript
+PuppyRaffle.constructor(uint256,address,uint256)._feeAddress (src/PuppyRaffle.sol#57) lacks a zero-check on :
+                - feeAddress = _feeAddress (src/PuppyRaffle.sol#59)
+PuppyRaffle.changeFeeAddress(address).newFeeAddress (src/PuppyRaffle.sol#165) lacks a zero-check on :
+                - feeAddress = newFeeAddress (src/PuppyRaffle.sol#166)
+
+```
+
+**Recommended Mitigation:** Add a zero address check whenever the feeAddress is updated.
+
+### [I-5] \_isActivePlayer is never used and should be removed
+
+**Description:** The function PuppyRaffle::\_isActivePlayer is never used and should be removed.
+
+**Recommended Mitigation:**
+
+- function \_isActivePlayer() internal view returns (bool) {
+-        for (uint256 i = 0; i < players.length; i++) {
+-            if (players[i] == msg.sender) {
+-                return true;
+-            }
+-        }
+-        return false;
+- }
+
+### [I-6] Unchanged variables should be constant or immutable
+
+**Description:**
+
+Constant Instances:
+
+```javascript
+PuppyRaffle.commonImageUri (src/PuppyRaffle.sol#35) should be constant
+PuppyRaffle.legendaryImageUri (src/PuppyRaffle.sol#45) should be constant
+PuppyRaffle.rareImageUri (src/PuppyRaffle.sol#40) should be constant
+```
+
+Immutable Instances:
+
+```javascript
+PuppyRaffle.raffleDuration (src/PuppyRaffle.sol#21) should be immutable
+```
+
+### [I-7] Potentially erroneous active player index
+
+**Description:** : The getActivePlayerIndex function is intended to return zero when the given address is not active. However, it could also return zero for an active address stored in the first slot of the players array. 
+
+**Impact:** This may cause confusions for users querying the function to obtain the index of an active player.
+
+**Recommended Mitigation:** Return 2**256-1 (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
+
+
+
+### [I-8] Zero address may be erroneously considered an active player
+
+**Description:** The refund function removes active players from the players array by setting the corresponding slots to zero. This is confirmed by its documentation, stating that "This function will allow there to be blank spots in the array". However, this is not taken into account by the getActivePlayerIndex function. If someone calls getActivePlayerIndex passing the zero address after there's been a refund, the function will consider the zero address an active player, and return its index in the players array.
+
+**Recommended Mitigation:**  Skip zero addresses when iterating the players array in the getActivePlayerIndex. Do note that this change would mean that the zero address can never be an active player. Therefore, it would be best if you also prevented the zero address from being registered as a valid player in the enterRaffle function.
