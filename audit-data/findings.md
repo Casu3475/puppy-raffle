@@ -549,23 +549,20 @@ https://swcregistry.io/docs/SWC-103/
 
 - pragma solidity ^0.7.6;
 
-* pragma solidity 0.7.6;
++ pragma solidity 0.7.6;
 
-### [I-2] ] Magic Numbers
+### [I-2] Magic Numbers
 
 **Description:** All number literals should be replaced with constants. This makes the code more readable and easier to maintain. Numbers without context are called "magic numbers".
 
 **Recommended Mitigation:** Replace all magic numbers with constants.
 
--       uint256 public constant PRIZE_POOL_PERCENTAGE = 80;
--       uint256 public constant FEE_PERCENTAGE = 20;
--       uint256 public constant TOTAL_PERCENTAGE = 100;
-  .
-  .
-  .
++       uint256 public constant PRIZE_POOL_PERCENTAGE = 80;
++       uint256 public constant FEE_PERCENTAGE = 20;
++       uint256 public constant TOTAL_PERCENTAGE = 100;
 
-*        uint256 prizePool = (totalAmountCollected * 80) / 100;
-*        uint256 fee = (totalAmountCollected * 20) / 100;
+-        uint256 prizePool = (totalAmountCollected * 80) / 100;
+-        uint256 fee = (totalAmountCollected * 20) / 100;
          uint256 prizePool = (totalAmountCollected * PRIZE_POOL_PERCENTAGE) / TOTAL_PERCENTAGE;
          uint256 fee = (totalAmountCollected * FEE_PERCENTAGE) / TOTAL_PERCENTAGE;
 
@@ -613,9 +610,9 @@ PuppyRaffle.changeFeeAddress(address).newFeeAddress (src/PuppyRaffle.sol#165) la
 -        return false;
 - }
 
-### [I-6] Unchanged variables should be constant or immutable
+### [I-6] Unchanged variables should be constant or immutable (Gas)
 
-**Description:**
+**Description:** reading from storage is much more expensive than reading from constant of immutable
 
 Constant Instances:
 
@@ -633,16 +630,14 @@ PuppyRaffle.raffleDuration (src/PuppyRaffle.sol#21) should be immutable
 
 ### [I-7] Potentially erroneous active player index
 
-**Description:** : The getActivePlayerIndex function is intended to return zero when the given address is not active. However, it could also return zero for an active address stored in the first slot of the players array. 
+**Description:** : The getActivePlayerIndex function is intended to return zero when the given address is not active. However, it could also return zero for an active address stored in the first slot of the players array.
 
 **Impact:** This may cause confusions for users querying the function to obtain the index of an active player.
 
-**Recommended Mitigation:** Return 2**256-1 (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
-
-
+**Recommended Mitigation:** Return 2\*\*256-1 (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
 
 ### [I-8] Zero address may be erroneously considered an active player
 
 **Description:** The refund function removes active players from the players array by setting the corresponding slots to zero. This is confirmed by its documentation, stating that "This function will allow there to be blank spots in the array". However, this is not taken into account by the getActivePlayerIndex function. If someone calls getActivePlayerIndex passing the zero address after there's been a refund, the function will consider the zero address an active player, and return its index in the players array.
 
-**Recommended Mitigation:**  Skip zero addresses when iterating the players array in the getActivePlayerIndex. Do note that this change would mean that the zero address can never be an active player. Therefore, it would be best if you also prevented the zero address from being registered as a valid player in the enterRaffle function.
+**Recommended Mitigation:** Skip zero addresses when iterating the players array in the getActivePlayerIndex. Do note that this change would mean that the zero address can never be an active player. Therefore, it would be best if you also prevented the zero address from being registered as a valid player in the enterRaffle function.
