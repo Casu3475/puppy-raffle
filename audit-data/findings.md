@@ -549,7 +549,7 @@ https://swcregistry.io/docs/SWC-103/
 
 - pragma solidity ^0.7.6;
 
-+ pragma solidity 0.7.6;
+* pragma solidity 0.7.6;
 
 ### [I-2] Magic Numbers
 
@@ -557,12 +557,12 @@ https://swcregistry.io/docs/SWC-103/
 
 **Recommended Mitigation:** Replace all magic numbers with constants.
 
-+       uint256 public constant PRIZE_POOL_PERCENTAGE = 80;
-+       uint256 public constant FEE_PERCENTAGE = 20;
-+       uint256 public constant TOTAL_PERCENTAGE = 100;
+-       uint256 public constant PRIZE_POOL_PERCENTAGE = 80;
+-       uint256 public constant FEE_PERCENTAGE = 20;
+-       uint256 public constant TOTAL_PERCENTAGE = 100;
 
--        uint256 prizePool = (totalAmountCollected * 80) / 100;
--        uint256 fee = (totalAmountCollected * 20) / 100;
+*        uint256 prizePool = (totalAmountCollected * 80) / 100;
+*        uint256 fee = (totalAmountCollected * 20) / 100;
          uint256 prizePool = (totalAmountCollected * PRIZE_POOL_PERCENTAGE) / TOTAL_PERCENTAGE;
          uint256 fee = (totalAmountCollected * FEE_PERCENTAGE) / TOTAL_PERCENTAGE;
 
@@ -597,7 +597,7 @@ PuppyRaffle.changeFeeAddress(address).newFeeAddress (src/PuppyRaffle.sol#165) la
 
 ### [I-5] \_isActivePlayer is never used and should be removed
 
-**Description:** The function PuppyRaffle::\_isActivePlayer is never used and should be removed.
+**Description:** The function PuppyRaffle::\_isActivePlayer is never used and should be removed. it is dead code !
 
 **Recommended Mitigation:**
 
