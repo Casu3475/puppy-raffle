@@ -35,7 +35,6 @@ Add the following code to the `PuppyRaffleTest.t.sol` file.
 <summary>PoC</summary>
 
 ```javascript
-
      function test_reentrancyRefund() public {
         address[] memory players = new address[](4);
         players[0] = playerOne;
@@ -103,7 +102,7 @@ contract ReentrancyAttacker {
 
 **Recommended Mitigation:** To fix this, we should have the PuppyRaffle::refund function update the players array before making the external call. Additionally, we should move the event emission up as well.
 
-```javascript
+```diff
     function refund(uint256 playerIndex) public {
         address playerAddress = players[playerIndex];
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
