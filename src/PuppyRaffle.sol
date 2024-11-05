@@ -75,12 +75,22 @@ contract PuppyRaffle is ERC721, Ownable {
         rarityToName[LEGENDARY_RARITY] = LEGENDARY;
     }
 
+
+    // ///////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////
+    // SO THIS IS PROBABLY THE MAIN ENTRY POINT, I START HERE
+    //////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////
     /// @notice this is how players enter the raffle
     /// @notice they have to pay the entrance fee * the number of players
     /// @notice duplicate entrants are not allowed
     /// @param newPlayers the list of players to enter the raffle
-    // SO THIS IS PROBABLY THE MAIN ENTRY POINT, I START HERE
+
     function enterRaffle(address[] memory newPlayers) public payable {
+        // q were custom reverts a thing in 0.7.6 of solidity ?
+        // what if it's 0?
         require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
         for (uint256 i = 0; i < newPlayers.length; i++) {
             // what resets the players array?
@@ -88,6 +98,7 @@ contract PuppyRaffle is ERC721, Ownable {
         }
 
         // Check for duplicates
+        // @audit DoS 
         for (uint256 i = 0; i < players.length - 1; i++) {
             for (uint256 j = i + 1; j < players.length; j++) {
                 require(players[i] != players[j], "PuppyRaffle: Duplicate player");
@@ -98,7 +109,8 @@ contract PuppyRaffle is ERC721, Ownable {
 
     /// @param playerIndex the index of the player to refund. You can find it externally by calling `getActivePlayerIndex`
     /// @dev This function will allow there to be blank spots in the array
-    function refund(uint256 playerIndex) public {
+    
+        function refund(uint256 playerIndex) public {
         // @audit MEV
         address playerAddress = players[playerIndex];
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import {Test, console} from "forge-std/Test.sol";
@@ -213,7 +213,7 @@ contract PuppyRaffleTest is Test {
         puppyRaffle.withdrawFees();
         assertEq(address(feeAddress).balance, expectedPrizeAmount);
     }
-
+}
 
 
 //      function test_reentrancyRefund() public {
@@ -276,5 +276,3 @@ contract PuppyRaffleTest is Test {
 //     receive() external payable {
 //         _stealMoney();
 //     }
-// }
-

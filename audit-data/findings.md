@@ -338,7 +338,6 @@ add the following test into `PuppyRaffleTest.t.sol`
 
 ```javascript
   function test_DoS() public {
-
         vm.txGasPrice(1);
         // Let's try to enter 100 players;
         // this is how we create 100 players with different addresses
@@ -384,34 +383,34 @@ test this
 1. consider allowing duplicates. Users can make new wallet addresses anyways, so a duplicate check doesn't prevent the same person from entering multiple times, only the same wallet address.
 2. consider using a mapping to check for duplicates. this would allow constant time lookup of whether a user has already entered.
 
-```javascript
-
-    mapping(address => uint256) public addressToRaffleId; // add this
-    uint256 public raffleId = 0; // add this
+```diff
++    mapping(address => uint256) public addressToRaffleId;
++    uint256 public raffleId = 0;
 
     function enterRaffle(address[] memory newPlayers) public payable {
-        require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle"); // modified
-        for (uint256 i = 0; i < newPlayers.length; i++) {                                                       // modified
-            players.push(newPlayers[i]);                                                                        // modified
-            addressToRaffleId[newPlayers[id]] = raffleId; // add this
+        require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
+        for (uint256 i = 0; i < newPlayers.length; i++) {
+            players.push(newPlayers[i]);
++            addressToRaffleId[newPlayers[i]] = raffleId;
         }
-```
 
-```javascript
- // Check for duplicates only from the new players
-       for (uint256 i = 0; i < newPlayers.length; i++) {
-               require(addressToRaffleId[newPlayers[i]] != raffleId, "PuppyRaffle: Duplicate player");
-           }
-       emit RaffleEnter(newPlayers);
-   }
-```
+-        // Check for duplicates
++       // Check for duplicates only from the new players
++       for (uint256 i = 0; i < newPlayers.length; i++) {
++          require(addressToRaffleId[newPlayers[i]] != raffleId, "PuppyRaffle: Duplicate player");
++       }
+-        for (uint256 i = 0; i < players.length; i++) {
+-            for (uint256 j = i + 1; j < players.length; j++) {
+-                require(players[i] != players[j], "PuppyRaffle: Duplicate player");
+-            }
+-        }
+        emit RaffleEnter(newPlayers);
+    }
 
-```javascript
-function selectWinner() external {
-        raffleId = raffleId + 1; // add this
+
+    function selectWinner() external {
++       raffleId = raffleId + 1;
         require(block.timestamp >= raffleStartTime + raffleDuration, "PuppyRaffle: Raffle not over");
-}
-
 ```
 
 3. You could use [OpenZeppelin's `EnumerableSet` library] (https://docs.openzeppelin.com/contracts/4.x/api/utils#EnumerableSet)
