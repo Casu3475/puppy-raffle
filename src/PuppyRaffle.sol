@@ -153,14 +153,23 @@ contract PuppyRaffle is ERC721, Ownable {
         uint256 winnerIndex =
             uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp, block.difficulty))) % players.length;
         address winner = players[winnerIndex];
+
+        // q why not just do address(this).balance ?
         uint256 totalAmountCollected = players.length * entranceFee;
+        // q is the 80% correct ? i guess there is an arithmatic error here
         uint256 prizePool = (totalAmountCollected * 80) / 100;
         uint256 fee = (totalAmountCollected * 20) / 100;
+        // q this is the total fees the owner should be able to collect 
+        // @audit overflow 
         totalFees = totalFees + uint64(fee);
 
+        // when we mint a new puppy, we use the totalSupply as the tokenId
+        // where do we increment the totalSupply ?
         uint256 tokenId = totalSupply();
 
         // We use a different RNG calculate from the winnerIndex to determine rarity
+        // @audit randomness ?
+        // gas war ...
         uint256 rarity = uint256(keccak256(abi.encodePacked(msg.sender, block.difficulty))) % 100;
         if (rarity <= COMMON_RARITY) {
             tokenIdToRarity[tokenId] = COMMON_RARITY;
@@ -170,15 +179,21 @@ contract PuppyRaffle is ERC721, Ownable {
             tokenIdToRarity[tokenId] = LEGENDARY_RARITY;
         }
 
-        delete players;
-        raffleStartTime = block.timestamp;
-        previousWinner = winner;
+        delete players; // e reset the players array
+        raffleStartTime = block.timestamp; // e esetting the raffle start time
+        previousWinner = winner; 
+
+        // @audit reentrancy ??? Can we reenter somewhere ?
+        // What is the winner is a smart contract with a fallback function that fails ?
+        // @audit the winner wouldn't be able to receive the money if his fallback was messed up !
         (bool success,) = winner.call{value: prizePool}("");
         require(success, "PuppyRaffle: Failed to send prize pool to winner");
         _safeMint(winner, tokenId);
     }
 
     /// @notice this function will withdraw the fees to the feeAddress
+    // ok so if the protocol has players, someone can't withdraw the fees ?
+    // @audit it s difficult to withdraw the fees if there are players in the protocol ?
     function withdrawFees() external {
         require(address(this).balance == uint256(totalFees), "PuppyRaffle: There are currently players active!");
         uint256 feesToWithdraw = totalFees;

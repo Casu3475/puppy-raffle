@@ -231,7 +231,7 @@ contract PuppyRaffleTest is Test {
 //         uint256 startingAttackContractBalance = address(attackerContract).balance;
 //         uint256 startingContractBalance = address(puppyRaffle).balance;
 
-//         // attack
+            // attack
 //         vm.prank(attackUser);
 //         attackerContract.attack{value: entranceFee}();
 

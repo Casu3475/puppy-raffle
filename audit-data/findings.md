@@ -121,7 +121,7 @@ myVar = myVar + 1;
 // myVar will be 0
 ```
 
-**Impact:** In PuppyRaffle::selectWinner, totalFees are accumulated for the feeAddress to collect later in withdrawFees. However, if the totalFees variable overflows, the feeAddress may not collect the correct amount of fees, leaving fees permanently stuck in the contract.
+**Impact:** In `PuppyRaffle::selectWinner`, totalFees are accumulated for the feeAddress to collect later in withdrawFees. However, if the totalFees variable overflows, the feeAddress may not collect the correct amount of fees, leaving fees permanently stuck in the contract.
 
 **Proof of Concept:**
 
@@ -137,14 +137,14 @@ totalFees = 800000000000000000 + 17800000000000000000;
 totalFees = 153255926290448384;
 ```
 
-4. You will now not be able to withdraw, due to this line in PuppyRaffle::withdrawFees:
+4. You will now not be able to withdraw, due to this line in `PuppyRaffle::withdrawFees`:
 
 ```javascript
 require(address(this).balance ==
   uint256(totalFees), "PuppyRaffle: There are currently players active!");
 ```
 
-Although you could use selfdestruct to send ETH to this contract in order for the values to match and withdraw the fees, this is clearly not what the protocol is intended to do.
+Although you could use `selfdestruct` to send ETH to this contract in order for the values to match and withdraw the fees, this is clearly not what the protocol is intended to do.
 
 Place this into the `PuppyRaffleTest.t.sol` file.
 
@@ -193,20 +193,25 @@ function testTotalFeesOverflow() public playersEntered {
 
 1. Use a newer version of Solidity that does not allow integer overflows by default.
 
+```diff
 - pragma solidity ^0.7.6;
++ pragma solidity ^0.8.18;
+```
 
-* pragma solidity ^0.8.18;
-  Alternatively, if you want to use an older version of Solidity, you can use a library like OpenZeppelin's SafeMath to prevent integer overflows.
+Alternatively, if you want to use an older version of Solidity, you can use a library like OpenZeppelin's SafeMath to prevent integer overflows.
 
 2. Use a uint256 instead of a uint64 for totalFees.
 
+```diff
 - uint64 public totalFees = 0;
-
-* uint256 public totalFees = 0;
++ uint256 public totalFees = 0;
+```
 
 3. Remove the balance check in PuppyRaffle::withdrawFees
 
+```diff
 - require(address(this).balance == uint256(totalFees), "PuppyRaffle: There are currently players active!");
+```
 
 We additionally want to bring your attention to another attack vector as a result of this line in a future finding.
 
