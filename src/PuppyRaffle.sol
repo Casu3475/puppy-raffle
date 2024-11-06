@@ -157,6 +157,7 @@ contract PuppyRaffle is ERC721, Ownable {
         // q why not just do address(this).balance ?
         uint256 totalAmountCollected = players.length * entranceFee;
         // q is the 80% correct ? i guess there is an arithmatic error here
+        // @audit-info magic numbers ! not a good idea 
         uint256 prizePool = (totalAmountCollected * 80) / 100;
         uint256 fee = (totalAmountCollected * 20) / 100;
         // q this is the total fees the owner should be able to collect 
@@ -194,6 +195,7 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @notice this function will withdraw the fees to the feeAddress
     // ok so if the protocol has players, someone can't withdraw the fees ?
     // @audit it s difficult to withdraw the fees if there are players in the protocol ?
+    // no receive function...
     function withdrawFees() external {
         require(address(this).balance == uint256(totalFees), "PuppyRaffle: There are currently players active!");
         uint256 feesToWithdraw = totalFees;
@@ -206,10 +208,13 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @param newFeeAddress the new address to send fees to
     function changeFeeAddress(address newFeeAddress) external onlyOwner {
         feeAddress = newFeeAddress;
+        // @audit no event ? are we missing events?
         emit FeeAddressChanged(newFeeAddress);
     }
 
     /// @notice this function will return true if the msg.sender is an active player
+    // @audit  _isActivePlayer isn't use anywhere !
+    // impact & likelihood : NONE but i's a waste of gas 
     function _isActivePlayer() internal view returns (bool) {
         for (uint256 i = 0; i < players.length; i++) {
             if (players[i] == msg.sender) {

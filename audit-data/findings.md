@@ -397,7 +397,7 @@ test this
 
 ---
 
-### [M-2] Balance check on PuppyRaffle::withdrawFees enables griefers to selfdestruct a contract to send ETH to the raffle, blocking withdrawals
+### [M-2] Balance check on `PuppyRaffle::withdrawFees` enables griefers to selfdestruct a contract to send ETH to the raffle, blocking withdrawals
 
 **Description:** The PuppyRaffle::withdrawFees function checks the totalFees equals the ETH balance of the contract (address(this).balance). Since this contract doesn't have a payable fallback or receive function, you'd think this wouldn't be possible, but a user could selfdesctruct a contract with ETH in it and force funds to the PuppyRaffle contract, breaking this check.
 
@@ -573,7 +573,7 @@ PuppyRaffle.changeFeeAddress(address).newFeeAddress (src/PuppyRaffle.sol#165) la
 
 **Recommended Mitigation:** Add a zero address check whenever the feeAddress is updated.
 
-### [I-5] \_isActivePlayer is never used and should be removed
+### [I-5] `_isActivePlayer` is never used and should be removed
 
 **Description:** The function PuppyRaffle::\_isActivePlayer is never used and should be removed. it is dead code !
 
