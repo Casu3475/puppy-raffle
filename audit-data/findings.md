@@ -1,7 +1,7 @@
 ### [H-1] Reentrancy attack in PuppyRaffle::refund allows entrant to drain contract balance
 
-**Description:** The PuppyRaffle::refund function does not follow CEI/FREI-PI (check effects interactions) and as a result, enables participants to drain the contract balance.
-In the PuppyRaffle::refund function, we first make an external call to the msg.sender address, and only after making that external call, we update the players array.
+**Description:** The `PuppyRaffle::refund` function does not follow CEI/FREI-PI (check effects interactions) and as a result, enables participants to drain the contract balance.
+In the `PuppyRaffle::refund` function, we first make an external call to the `msg.sender` address, and only after making that external call, we update the player
 
 ```javascript
     function refund(uint256 playerIndex) public {
@@ -16,7 +16,7 @@ In the PuppyRaffle::refund function, we first make an external call to the msg.s
 }
 ```
 
-A player who has entered the raffle could have a fallback/receive function that calls the PuppyRaffle::refund function again and claim another refund. They could continue to cycle this until the contract balance is drained.
+A player who has entered the raffle could have a fallback/receive function that calls the `PuppyRaffle::refund` function again and claim another refund. They could continue to cycle this until the contract balance is drained.
 
 **Impact:** All fees paid by raffle entrants could be stolen by the malicious participant.
 
