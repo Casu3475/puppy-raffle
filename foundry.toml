@@ -5,7 +5,7 @@ libs = ["lib"]
 # solc_version = '0.7.6'
 
 remappings = [
-    "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
-    "forge-std=lib/forge-std/src"
+    '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
+    # "forge-std=lib/forge-std/src"
 ]
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
