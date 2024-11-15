@@ -58,6 +58,7 @@ contract ReentrancyAttacker {
     }
 }
 
+// this one inside the contract PuppyRaffleTest
 function testReentrance() public playersEntered {
     ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
     vm.deal(address(attacker), 1e18);
@@ -74,6 +75,9 @@ function testReentrance() public playersEntered {
 ```
 
 </details>
+
+then
+`forge test --mt testReentrance -vvv`
 
 **Recommended Mitigation:** To fix this, we should have the `PuppyRaffle::refund` function update the `players` array before making the external call. Additionally, we should move the event emission up as well.
 

