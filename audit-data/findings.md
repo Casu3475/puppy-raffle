@@ -1,4 +1,4 @@
-### [H-1] Reentrancy attack in PuppyRaffle::refund allows entrant to drain contract balance
+### [H-1] Reentrancy attack in `PuppyRaffle::refund` allows entrant to drain contract balance
 
 **Description:** The `PuppyRaffle::refund` function does not follow CEI/FREI-PI (check effects interactions) and as a result, enables participants to drain the contract balance.
 In the `PuppyRaffle::refund` function, we first make an external call to the `msg.sender` address, and only after making that external call, we update the player
@@ -91,7 +91,7 @@ function testReentrance() public playersEntered {
     }
 ```
 
-### [H-2] Weak randomness in PuppyRaffle::selectWinner allows anyone to choose winner
+### [H-2] Weak randomness in `PuppyRaffle::selectWinner` allows anyone to choose winner
 
 **Description:** Hashing msg.sender, block.timestamp, block.difficulty together creates a predictable final number. A predictable number is not a good random number. Malicious users can manipulate these values or know them ahead of time to choose the winner of the raffle themselves.
 
@@ -110,7 +110,7 @@ Using on-chain values as a randomness seed is a well-known attack vector in the 
 
 ---
 
-### [H-3] Integer overflow of PuppyRaffle::totalFees loses fees
+### [H-3] Integer overflow of `PuppyRaffle::totalFees` loses fees
 
 **Description:** In Solidity versions prior to 0.8.0, integers were subject to integer overflows.
 
@@ -399,7 +399,7 @@ test this
 
 ### [M-2] Balance check on `PuppyRaffle::withdrawFees` enables griefers to selfdestruct a contract to send ETH to the raffle, blocking withdrawals
 
-**Description:** The PuppyRaffle::withdrawFees function checks the totalFees equals the ETH balance of the contract (address(this).balance). Since this contract doesn't have a payable fallback or receive function, you'd think this wouldn't be possible, but a user could selfdesctruct a contract with ETH in it and force funds to the PuppyRaffle contract, breaking this check.
+**Description:** The `PuppyRaffle::withdrawFees` function checks the totalFees equals the ETH balance of the contract (address(this).balance). Since this contract doesn't have a payable fallback or receive function, you'd think this wouldn't be possible, but a user could selfdesctruct a contract with ETH in it and force funds to the PuppyRaffle contract, breaking this check.
 
 ```javascript
     function withdrawFees() external {
@@ -431,7 +431,7 @@ test this
     }
 ```
 
-### [M-3] Unsafe cast of PuppyRaffle::fee loses fees
+### [M-3] Unsafe cast of `PuppyRaffle::fee` loses fees
 
 **Description:** In PuppyRaffle::selectWinner their is a type cast of a uint256 to a uint64. This is an unsafe cast, and if the uint256 is larger than type(uint64).max, the value will be truncated.
 
@@ -496,11 +496,11 @@ But the potential gas saved isn't worth it if we have to recast and this bug exi
 
 ### [M-4] Smart Contract wallet raffle winners without a receive or a fallback will block the start of a new contest
 
-**Description:** The PuppyRaffle::selectWinner function is responsible for resetting the lottery. However, if the winner is a smart contract wallet that rejects payment, the lottery would not be able to restart.
+**Description:** The `PuppyRaffle::selectWinner` function is responsible for resetting the lottery. However, if the winner is a smart contract wallet that rejects payment, the lottery would not be able to restart.
 
 Non-smart contract wallet users could reenter, but it might cost them a lot of gas due to the duplicate check.
 
-**Impact:** The PuppyRaffle::selectWinner function could revert many times, and make it very difficult to reset the lottery, preventing a new one from starting.
+**Impact:** The `PuppyRaffle::selectWinner` function could revert many times, and make it very difficult to reset the lottery, preventing a new one from starting.
 
 Also, true winners would not be able to get paid out, and someone else would win their money!
 
@@ -575,11 +575,12 @@ PuppyRaffle.changeFeeAddress(address).newFeeAddress (src/PuppyRaffle.sol#165) la
 
 ### [I-5] `_isActivePlayer` is never used and should be removed
 
-**Description:** The function PuppyRaffle::\_isActivePlayer is never used and should be removed. it is dead code !
+**Description:** The function `PuppyRaffle::_isActivePlayer` is never used and should be removed. it is dead code !
 
 **Recommended Mitigation:**
 
-- function \_isActivePlayer() internal view returns (bool) {
+```javascript
+- function _isActivePlayer() internal view returns (bool) {
 -        for (uint256 i = 0; i < players.length; i++) {
 -            if (players[i] == msg.sender) {
 -                return true;
@@ -587,6 +588,7 @@ PuppyRaffle.changeFeeAddress(address).newFeeAddress (src/PuppyRaffle.sol#165) la
 -        }
 -        return false;
 - }
+```
 
 ### [I-6] Unchanged variables should be constant or immutable (Gas)
 
