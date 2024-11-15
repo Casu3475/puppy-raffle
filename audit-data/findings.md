@@ -419,7 +419,7 @@ test this
 2. Malicious user sends 1 wei via a selfdestruct
 3. feeAddress is no longer able to withdraw funds
 
-**Recommended Mitigation:** Remove the balance check on the PuppyRaffle::withdrawFees function.
+**Recommended Mitigation:** Remove the balance check on the `PuppyRaffle::withdrawFees` function.
 
 ```javascript
     function withdrawFees() external {
@@ -614,7 +614,7 @@ PuppyRaffle.raffleDuration (src/PuppyRaffle.sol#21) should be immutable
 
 **Impact:** This may cause confusions for users querying the function to obtain the index of an active player.
 
-**Recommended Mitigation:** Return 2\*\*256-1 (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
+**Recommended Mitigation:** Return 2 \*\* 256-1 (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
 
 ### [I-8] Zero address may be erroneously considered an active player
 

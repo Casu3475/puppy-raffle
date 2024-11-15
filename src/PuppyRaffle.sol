@@ -166,7 +166,8 @@ contract PuppyRaffle is ERC721, Ownable {
 
         // when we mint a new puppy, we use the totalSupply as the tokenId
         // where do we increment the totalSupply ?
-        uint256 tokenId = totalSupply();
+        uint256 tokenId = totalSupply(); 
+
 
         // We use a different RNG calculate from the winnerIndex to determine rarity
         // @audit randomness ?

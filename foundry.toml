@@ -2,10 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-# solc_version = '0.7.6'
 
-remappings = [
-    '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
-    # "forge-std=lib/forge-std/src"
-]
+remappings = ['@openzeppelin/contracts=lib/openzeppelin-contracts/contracts']
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
