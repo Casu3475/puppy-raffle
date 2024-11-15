@@ -33,6 +33,22 @@ Add the following code to the `PuppyRaffleTest.t.sol` file.
 <summary>PoC</summary>
 
 ```javascript
+// this one inside the contract PuppyRaffleTest
+function testReentrance() public playersEntered {
+    ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
+    vm.deal(address(attacker), 1e18);
+    uint256 startingAttackerBalance = address(attacker).balance;
+    uint256 startingContractBalance = address(puppyRaffle).balance;
+
+    attacker.attack();
+
+    uint256 endingAttackerBalance = address(attacker).balance;
+    uint256 endingContractBalance = address(puppyRaffle).balance;
+    assertEq(endingAttackerBalance, startingAttackerBalance + startingContractBalance);
+    assertEq(endingContractBalance, 0);
+}
+
+// this one outside contract PuppyRaffleTest
 contract ReentrancyAttacker {
     PuppyRaffle puppyRaffle;
     uint256 entranceFee;
@@ -57,24 +73,8 @@ contract ReentrancyAttacker {
         }
     }
 }
-
-// this one inside the contract PuppyRaffleTest
-function testReentrance() public playersEntered {
-    ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
-    vm.deal(address(attacker), 1e18);
-    uint256 startingAttackerBalance = address(attacker).balance;
-    uint256 startingContractBalance = address(puppyRaffle).balance;
-
-    attacker.attack();
-
-    uint256 endingAttackerBalance = address(attacker).balance;
-    uint256 endingContractBalance = address(puppyRaffle).balance;
-    assertEq(endingAttackerBalance, startingAttackerBalance + startingContractBalance);
-    assertEq(endingContractBalance, 0);
-}
-```
-
 </details>
+```
 
 then
 `forge test --mt testReentrance -vvv`
@@ -97,13 +97,13 @@ then
 
 ### [H-2] Weak randomness in `PuppyRaffle::selectWinner` allows anyone to choose winner
 
-**Description:** Hashing msg.sender, block.timestamp, block.difficulty together creates a predictable final number. A predictable number is not a good random number. Malicious users can manipulate these values or know them ahead of time to choose the winner of the raffle themselves.
+**Description:** Hashing `msg.sender, block.timestamp, block.difficulty` together creates a predictable final number. A predictable number is not a good random number. Malicious users can manipulate these values or know them ahead of time to choose the winner of the raffle themselves.
 
 **Impact:** Any user can choose the winner of the raffle, winning the money and selecting the "rarest" puppy, essentially making it such that all puppies have the same rarity, since you can choose the puppy.
 
 **Proof of Concept:** There are a few attack vectors here.
 
-1. Validators can know ahead of time the block.timestamp and block.difficulty and use that knowledge to predict when / how to participate. See the solidity blog on prevrando here. block.difficulty was recently replaced with prevrandao.
+1. Validators can know ahead of time the `block.timestamp` and `block.difficulty` and use that knowledge to predict when / how to participate. See the solidity blog on prevrando here. `block.difficulty` was recently replaced with prevrandao.
 2. Users can manipulate the msg.sender value to result in their index being the winner.
 
 Using on-chain values as a randomness seed is a well-known attack vector in the blockchain space.
@@ -193,6 +193,8 @@ function testTotalFeesOverflow() public playersEntered {
 
 </details>
 
+`forge test --mt testTotalFeesOverflow  -vvv`
+
 **Recommended Mitigation:** There are a few recommended mitigations here.
 
 1. Use a newer version of Solidity that does not allow integer overflows by default.
@@ -225,17 +227,16 @@ We additionally want to bring your attention to another attack vector as a resul
 
 ### [H-4] Malicious winner can forever halt the raffle
 
-**Description:** Once the winner is chosen, the selectWinner function sends the prize to the the corresponding address with an external call to the winner account.
+**Description:** Once the winner is chosen, the `selectWinner` function sends the prize to the the corresponding address with an external call to the winner account.
 
 ```javascript
 (bool success,) = winner.call{value: prizePool}("");
 require(success, "PuppyRaffle: Failed to send prize pool to winner");
-
 ```
 
-If the winner account were a smart contract that did not implement a payable fallback or receive function, or these functions were included but reverted, the external call above would fail, and execution of the selectWinner function would halt. Therefore, the prize would never be distributed and the raffle would never be able to start a new round.
+If the winner account were a smart contract that did not implement a payable `fallback` or `receive` function, or these functions were included but reverted, the external call above would fail, and execution of the selectWinner function would halt. Therefore, the prize would never be distributed and the raffle would never be able to start a new round.
 
-There's another attack vector that can be used to halt the raffle, leveraging the fact that the selectWinner function mints an NFT to the winner using the \_safeMint function. This function, inherited from the ERC721 contract, attempts to call the onERC721Received hook on the receiver if it is a smart contract. Reverting when the contract does not implement such function.
+There's another attack vector that can be used to halt the raffle, leveraging the fact that the `selectWinner` function mints an NFT to the winner using the `_safeMint` function. This function, inherited from the ERC721 contract, attempts to call the onERC721Received hook on the receiver if it is a smart contract. Reverting when the contract does not implement such function.
 
 Therefore, an attacker can register a smart contract in the raffle that does not implement the onERC721Received hook expected. This will prevent minting the NFT and will revert the call to selectWinner.
 
@@ -403,7 +404,7 @@ test this
 
 ### [M-2] Balance check on `PuppyRaffle::withdrawFees` enables griefers to selfdestruct a contract to send ETH to the raffle, blocking withdrawals
 
-**Description:** The `PuppyRaffle::withdrawFees` function checks the totalFees equals the ETH balance of the contract (address(this).balance). Since this contract doesn't have a payable fallback or receive function, you'd think this wouldn't be possible, but a user could selfdesctruct a contract with ETH in it and force funds to the PuppyRaffle contract, breaking this check.
+**Description:** The `PuppyRaffle::withdrawFees` function checks the `totalFees` equals the ETH balance of the contract `(address(this).balance)`. Since this contract doesn't have a payable fallback or receive function, you'd think this wouldn't be possible, but a user could `selfdesctruct` a contract with ETH in it and force funds to the PuppyRaffle contract, breaking this check.
 
 ```javascript
     function withdrawFees() external {
@@ -415,7 +416,7 @@ test this
     }
 ```
 
-**Impact:** This would prevent the feeAddress from withdrawing fees. A malicious user could see a withdrawFee transaction in the mempool, front-run it, and block the withdrawal by sending fees.
+**Impact:** This would prevent the `feeAddress` from withdrawing fees. A malicious user could see a withdrawFee transaction in the mempool, front-run it, and block the withdrawal by sending fees.
 
 **Proof of Concept:**
 
@@ -425,7 +426,7 @@ test this
 
 **Recommended Mitigation:** Remove the balance check on the `PuppyRaffle::withdrawFees` function.
 
-```javascript
+```diff
     function withdrawFees() external {
 -       require(address(this).balance == uint256(totalFees), "PuppyRaffle: There are currently players active!");
         uint256 feesToWithdraw = totalFees;
@@ -437,7 +438,7 @@ test this
 
 ### [M-3] Unsafe cast of `PuppyRaffle::fee` loses fees
 
-**Description:** In PuppyRaffle::selectWinner their is a type cast of a uint256 to a uint64. This is an unsafe cast, and if the uint256 is larger than type(uint64).max, the value will be truncated.
+**Description:** In `PuppyRaffle::selectWinner` their is a type cast of a uint256 to a uint64. This is an unsafe cast, and if the uint256 is larger than type(uint64).max, the value will be truncated.
 
 ```javascript
     function selectWinner() external {
@@ -456,7 +457,7 @@ test this
 
 The max value of a uint64 is 18446744073709551615. In terms of ETH, this is only ~18 ETH. Meaning, if more than 18ETH of fees are collected, the fee casting will truncate the value.
 
-**Impact:** This means the feeAddress will not collect the correct amount of fees, leaving fees permanently stuck in the contract.
+**Impact:** This means the `feeAddress` will not collect the correct amount of fees, leaving fees permanently stuck in the contract.
 
 **Proof of Concept:**
 
@@ -479,7 +480,7 @@ uint64(fee)
 
 But the potential gas saved isn't worth it if we have to recast and this bug exists.
 
-```javascript
+```diff
 -   uint64 public totalFees = 0;
 +   uint256 public totalFees = 0;
 .
@@ -498,7 +499,7 @@ But the potential gas saved isn't worth it if we have to recast and this bug exi
 +       totalFees = totalFees + fee;
 ```
 
-### [M-4] Smart Contract wallet raffle winners without a receive or a fallback will block the start of a new contest
+### [M-4] Smart Contract wallet raffle winners without a `receive` or a `fallback` will block the start of a new contest
 
 **Description:** The `PuppyRaffle::selectWinner` function is responsible for resetting the lottery. However, if the winner is a smart contract wallet that rejects payment, the lottery would not be able to restart.
 
@@ -614,14 +615,14 @@ PuppyRaffle.raffleDuration (src/PuppyRaffle.sol#21) should be immutable
 
 ### [I-7] Potentially erroneous active player index
 
-**Description:** : The getActivePlayerIndex function is intended to return zero when the given address is not active. However, it could also return zero for an active address stored in the first slot of the players array.
+**Description:** : The `getActivePlayerIndex` function is intended to return zero when the given address is not active. However, it could also return zero for an active address stored in the first slot of the players array.
 
 **Impact:** This may cause confusions for users querying the function to obtain the index of an active player.
 
-**Recommended Mitigation:** Return 2 \*\* 256-1 (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
+**Recommended Mitigation:** Return `2**256-1` (or any other sufficiently high number) to signal that the given player is inactive, so as to avoid collision with indices of active players.
 
 ### [I-8] Zero address may be erroneously considered an active player
 
-**Description:** The refund function removes active players from the players array by setting the corresponding slots to zero. This is confirmed by its documentation, stating that "This function will allow there to be blank spots in the array". However, this is not taken into account by the getActivePlayerIndex function. If someone calls getActivePlayerIndex passing the zero address after there's been a refund, the function will consider the zero address an active player, and return its index in the players array.
+**Description:** The refund function removes active players from the players array by setting the corresponding slots to zero. This is confirmed by its documentation, stating that "This function will allow there to be blank spots in the array". However, this is not taken into account by the `getActivePlayerIndex` function. If someone calls `getActivePlayerIndex` passing the zero address after there's been a refund, the function will consider the zero address an active player, and return its index in the players array.
 
-**Recommended Mitigation:** Skip zero addresses when iterating the players array in the getActivePlayerIndex. Do note that this change would mean that the zero address can never be an active player. Therefore, it would be best if you also prevented the zero address from being registered as a valid player in the enterRaffle function.
+**Recommended Mitigation:** Skip zero addresses when iterating the players array in the `getActivePlayerIndex`. Do note that this change would mean that the zero address can never be an active player. Therefore, it would be best if you also prevented the zero address from being registered as a valid player in the enterRaffle function.

