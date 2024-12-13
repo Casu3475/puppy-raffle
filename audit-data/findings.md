@@ -13,7 +13,7 @@ In the `PuppyRaffle::refund` function, we first make an external call to the `ms
 
 @>  players[playerIndex] = address(0);
     emit RaffleRefunded(playerAddress);
-}
+} 
 ```
 
 A player who has entered the raffle could have a fallback/receive function that calls the `PuppyRaffle::refund` function again and claim another refund. They could continue to cycle this until the contract balance is drained.
@@ -288,7 +288,7 @@ contract AttackerContract {
 }
 ```
 
-**Recommended Mitigation:** Favor pull-payments over push-payments. This means modifying the selectWinner function so that the winner account has to claim the prize by calling a function, instead of having the contract automatically send the funds during execution of selectWinner.
+**Recommended Mitigation:** Favor pull-payments over push-payments. This means modifying the `selectWinner` function so that the winner account has to claim the prize by calling a function, instead of having the contract automatically send the funds during execution of `selectWinner`.
 
 ### [M-1] Looping through players array to check for duplicates in `PuppyRaffle::enterRaffle` is a potential denial of service (DoS) attack, incrementing gas costs for future entrants
 
@@ -497,6 +497,7 @@ But the potential gas saved isn't worth it if we have to recast and this bug exi
         uint256 fee = (totalAmountCollected * 20) / 100;
 -       totalFees = totalFees + uint64(fee);
 +       totalFees = totalFees + fee;
+    }
 ```
 
 ### [M-4] Smart Contract wallet raffle winners without a `receive` or a `fallback` will block the start of a new contest
