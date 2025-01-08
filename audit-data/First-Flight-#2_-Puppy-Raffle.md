@@ -125,7 +125,7 @@ pragma solidity ^0.7.6;
 import "./PuppyRaffle.sol";
 
 contract AttackContract {
-    PuppyRaffle public puppyRaffle; // A reference to the PuppyRaffle contract being attacked.
+    PuppyRaffle public puppyRaffle; // reference to the PuppyRaffle contract being attacked.
     uint256 public receivedEther; // Tracks the total amount of Ether received by the attacking contract.
 
     constructor(PuppyRaffle _puppyRaffle) {
