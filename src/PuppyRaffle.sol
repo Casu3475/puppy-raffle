@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.6;
 // @Audit-info use of floating pragma is bad !
-// @Audit-info why are you using 0.7 ? 
+// @Audit-info why are you using 0.7 ? The PuppyRaffle.sol uses Solidity compiler version 0.7.6. Any Solidity version before 0.8.0 is prone to Overflow/Underflow vulnerability
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -86,6 +86,8 @@ contract PuppyRaffle is ERC721, Ownable {
         require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
         for (uint256 i = 0; i < newPlayers.length; i++) {
             // what resets the players array?
+            // @audit impossible to win raffle if the winner is a smart contract without a fallback function
+            // require(Address.isContract(newPlayers[i]) == false, "The players need to be EOAs");
             players.push(newPlayers[i]);
         }
 
@@ -103,7 +105,7 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @dev This function will allow there to be blank spots in the array
     
         function refund(uint256 playerIndex) public {
-        // @audit MEV
+        // @audit Front-runing 
         address playerAddress = players[playerIndex]; // Retrieves the address of the player at the specified playerIndex in the players array.
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
         require(playerAddress != address(0), "PuppyRaffle: Player already refunded, or is not active"); // An address(0) value indicates an inactive or refunded player.
@@ -111,6 +113,7 @@ contract PuppyRaffle is ERC721, Ownable {
         payable(msg.sender).sendValue(entranceFee);
 
         players[playerIndex] = address(0); // e set the player to 0 address - fund loss
+        // @audit `PuppyRaffle::refund` is supposed to refund a player and remove him from the current players. But instead, it replaces his index value with address(0) which is considered a valid value by solidity. This can cause a lot issues because the players array length is unchanged and address(0) is now considered a player.
         emit RaffleRefunded(playerAddress);
     }
 
@@ -146,13 +149,13 @@ contract PuppyRaffle is ERC721, Ownable {
         address winner = players[winnerIndex];
 
         // q why not just do address(this).balance ?
+        // @audit Front-runing 
         uint256 totalAmountCollected = players.length * entranceFee;
         // q is the 80% correct ? i guess there is an arithmatic error here
         // @audit-info magic numbers ! not a good idea 
         uint256 prizePool = (totalAmountCollected * 80) / 100;
         uint256 fee = (totalAmountCollected * 20) / 100;
-        // q this is the total fees the owner should be able to collect 
-        // @audit overflow 
+        // @audit The type conversion from uint256 to uint64 in the expression here may potentially cause overflow problems if the 'fee' exceeds the maximum value that a uint64 can accommodate (2^64 - 1).
         totalFees = totalFees + uint64(fee);
 
         // when we mint a new puppy, we use the totalSupply as the tokenId
@@ -184,10 +187,10 @@ contract PuppyRaffle is ERC721, Ownable {
     }
 
     /// @notice this function will withdraw the fees to the feeAddress
-    // ok so if the protocol has players, someone can't withdraw the fees ?
     // @audit it s difficult to withdraw the fees if there are players in the protocol ?
     // no receive function...
     function withdrawFees() external {
+        // @audit Avoid using `address(this).balance` in this way as it can easily be changed by an attacker
         require(address(this).balance == uint256(totalFees), "PuppyRaffle: There are currently players active!");
         uint256 feesToWithdraw = totalFees;
         totalFees = 0;
@@ -197,6 +200,7 @@ contract PuppyRaffle is ERC721, Ownable {
 
     /// @notice only the owner of the contract can change the feeAddress
     /// @param newFeeAddress the new address to send fees to
+    // @audit front-running
     function changeFeeAddress(address newFeeAddress) external onlyOwner {
         feeAddress = newFeeAddress;
         // @audit no event ? are we missing events?
