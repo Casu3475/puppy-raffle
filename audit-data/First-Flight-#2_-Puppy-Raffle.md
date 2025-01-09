@@ -1,90 +1,32 @@
-# First Flight #2: Puppy Raffle - Findings Report
+## [H-1] Potential Loss of Funds During Prize Pool Distribution
 
-# Table of contents
-
-- ### [Contest Summary](#contest-summary)
-- ### [Results Summary](#results-summary)
-- ## High Risk Findings
-  - [H-01. Potential Loss of Funds During Prize Pool Distribution](#H-01)
-  - [H-02. Reentrancy Vulnerability In refund() function ](#H-02)
-  - [H-03. Randomness can be gamed](#H-03)
-  - [H-04. `PuppyRaffle::refund` replaces an index with address(0) which can cause the function `PuppyRaffle::selectWinner` to always revert](#H-04)
-  - [H-05. Typecasting from uint256 to uint64 in PuppyRaffle.selectWinner() May Lead to Overflow and Incorrect Fee Calculation](#H-05)
-  - [H-06. Overflow/Underflow vulnerabilty for any version before 0.8.0](#H-06)
-  - [H-07. Potential Front-Running Attack in `selectWinner` and `refund` Functions](#H-07)
-- ## Medium Risk Findings
-  - [M-01. `PuppyRaffle: enterRaffle` Use of gas extensive duplicate check leads to Denial of Service, making subsequent participants to spend much more gas than prev ones to enter](#M-01)
-  - [M-02. Slightly increasing puppyraffle's contract balance will render `withdrawFees` function useless](#M-02)
-  - [M-03. Impossible to win raffle if the winner is a smart contract without a fallback function](#M-03)
-- ## Low Risk Findings
-  - [L-01. Ambiguous index returned from PuppyRaffle::getActivePlayerIndex(address), leading to possible refund failures](#L-01)
-  - [L-02. Missing `WinnerSelected`/`FeesWithdrawn` event emition in `PuppyRaffle::selectWinner`/`PuppyRaffle::withdrawFees` methods](#L-02)
-  - [L-03. Participants are mislead by the rarity chances.](#L-03)
-  - [L-04. PuppyRaffle::selectWinner() - L126: should use `>` instead of `>=`, because `raffleStartTime + raffleDuration` still represents an active raffle.](#L-04)
-  - [L-05. Total entrance fee can overflow leading to the user paying little to nothing](#L-05)
-  - [L-06. Fee should be 'totalAmountCollected-prizePool' to prevent decimal loss](#L-06)
-
-# <a id='contest-summary'></a>Contest Summary
-
-### Sponsor: First Flight #2
-
-### Dates: Oct 25th, 2023 - Nov 1st, 2023
-
-[See more contest details here](https://codehawks.cyfrin.io/c/2023-10-Puppy-Raffle)
-
-# <a id='results-summary'></a>Results Summary
-
-### Number of findings:
-
-- High: 7
-- Medium: 3
-- Low: 6
-
-# High Risk Findings
-
-## <a id='H-01'></a>H-01. Potential Loss of Funds During Prize Pool Distribution
-
-_Submitted by [0xethanol](https://profiles.cyfrin.io/u/undefined), [efecarranza](https://profiles.cyfrin.io/u/undefined), [shikhar229169](https://profiles.cyfrin.io/u/undefined), [happyformerlawyer](https://profiles.cyfrin.io/u/undefined), [zach030](https://profiles.cyfrin.io/u/undefined), [funkornaut](https://profiles.cyfrin.io/u/undefined), [cem](https://profiles.cyfrin.io/u/undefined), [0xbjorn](https://profiles.cyfrin.io/u/undefined), [ZedBlockchain](https://profiles.cyfrin.io/u/undefined), [0xaraj](https://profiles.cyfrin.io/u/undefined), [0x6a70](https://profiles.cyfrin.io/u/undefined), [merlinboii](https://profiles.cyfrin.io/u/undefined), [inallhonesty](https://profiles.cyfrin.io/u/undefined), [ararara](https://profiles.cyfrin.io/u/undefined), [sandman](https://profiles.cyfrin.io/u/undefined), [nisedo](https://profiles.cyfrin.io/u/undefined), [0xWalle](https://profiles.cyfrin.io/u/undefined), [rapstyle](https://profiles.cyfrin.io/u/undefined), [n4thedev01](https://profiles.cyfrin.io/u/undefined), [Eric](https://profiles.cyfrin.io/u/undefined), [theirrationalone](https://profiles.cyfrin.io/u/undefined), [ThermoHash](https://profiles.cyfrin.io/u/undefined), [naman1729](https://profiles.cyfrin.io/u/undefined), [luka](https://profiles.cyfrin.io/u/undefined), [asimaranov](https://profiles.cyfrin.io/u/undefined), [wallebach](https://profiles.cyfrin.io/u/undefined), [pacelli](https://profiles.cyfrin.io/u/undefined), [danielvo102](https://profiles.cyfrin.io/u/undefined), [y0ng0p3](https://profiles.cyfrin.io/u/undefined), [priker](https://profiles.cyfrin.io/u/undefined), [dentonylifer](https://profiles.cyfrin.io/u/undefined), [0xepley](https://codehawks.cyfrin.io/team/clkjtgvih0001jt088aqegxjj), [ryonen](https://profiles.cyfrin.io/u/undefined), [ivanfitro](https://profiles.cyfrin.io/u/undefined), [intellygentle](https://profiles.cyfrin.io/u/undefined), [davide](https://profiles.cyfrin.io/u/undefined), [elser17](https://profiles.cyfrin.io/u/undefined), [yeahchibyke](https://profiles.cyfrin.io/u/undefined), [zhuying](https://profiles.cyfrin.io/u/undefined), [Marcologonz](https://profiles.cyfrin.io/u/undefined), [0xspryon](https://profiles.cyfrin.io/u/undefined), [krisrenzo](https://profiles.cyfrin.io/u/undefined), [maroutis](https://profiles.cyfrin.io/u/undefined), [0xrochimaru](https://profiles.cyfrin.io/u/undefined), [TheCodingCanuck](https://profiles.cyfrin.io/u/undefined), [Leogold](https://profiles.cyfrin.io/u/undefined), [blocktivist](https://profiles.cyfrin.io/u/undefined), [ezerez](https://profiles.cyfrin.io/u/undefined), [n0kto](https://profiles.cyfrin.io/u/undefined), [kumar](https://profiles.cyfrin.io/u/undefined), [0xouooo](https://profiles.cyfrin.io/u/undefined), [zxarcs](https://profiles.cyfrin.io/u/undefined), [benbo](https://profiles.cyfrin.io/u/undefined), [sobieski](https://profiles.cyfrin.io/u/undefined), [uint256vieet](https://profiles.cyfrin.io/u/undefined), [innertia](https://profiles.cyfrin.io/u/undefined), [WangSecurity](https://profiles.cyfrin.io/u/undefined), [coffee](https://profiles.cyfrin.io/u/undefined), [iLoveMiaGoth](https://profiles.cyfrin.io/u/undefined), [0xswahili](https://profiles.cyfrin.io/u/undefined), [emanherawy](https://profiles.cyfrin.io/u/undefined), [Nocturnus](https://profiles.cyfrin.io/u/undefined), [pratred](https://profiles.cyfrin.io/u/undefined), [silvana](https://profiles.cyfrin.io/u/undefined), [Bigor](https://profiles.cyfrin.io/u/undefined), [remedcu](https://profiles.cyfrin.io/u/undefined), [kose](https://profiles.cyfrin.io/u/undefined), [0xlemon](https://profiles.cyfrin.io/u/undefined), [equious](https://profiles.cyfrin.io/u/undefined), [cromewar](https://profiles.cyfrin.io/u/undefined), [Heba](https://profiles.cyfrin.io/u/undefined), [0xlouistsai](https://profiles.cyfrin.io/u/undefined), [printfjoby](https://profiles.cyfrin.io/u/undefined), [ciaranightingale](https://profiles.cyfrin.io/u/undefined), [jasmine](https://profiles.cyfrin.io/u/undefined), [hueber](https://profiles.cyfrin.io/u/undefined), [0x0bserver](https://profiles.cyfrin.io/u/undefined). Selected submission by: [0xepley](https://codehawks.cyfrin.io/team/clkjtgvih0001jt088aqegxjj)._
-
-### Relevant GitHub Links
-
-https://github.com/Cyfrin/2023-10-Puppy-Raffle/blob/main/src/PuppyRaffle.sol#L125-L154
-
-https://github.com/Cyfrin/2023-10-Puppy-Raffle/blob/main/src/PuppyRaffle.sol#L103
-
-## Summary
+**Summary**
 
 In the `selectWinner` function, when a player has refunded and their address is replaced with address(0), the prize money may be sent to address(0), resulting in fund loss.
 
-## Vulnerability Details
+**Vulnerability Details**
 
 In the `refund` function if a user wants to refund his money then he will be given his money back and his address in the array will be replaced with `address(0)`. So lets say `Alice` entered in the raffle and later decided to refund her money then her address in the `player` array will be replaced with `address(0)`. And lets consider that her index in the array is `7th` so currently there is `address(0)` at `7th index`, so when `selectWinner` function will be called there isn't any kind of check that this 7th index can't be the winner so if this `7th` index will be declared as winner then all the prize will be sent to him which will actually lost as it will be sent to `address(0)`
 
-## Impact
+**Impact**
 
 Loss of funds if they are sent to address(0), posing a financial risk.
 
-## Tools Used
+**Tools Used**
 
 Manual Review
 
-## Recommendations
+**Recommendations**
 
 Implement additional checks in the `selectWinner` function to ensure that prize money is not sent to `address(0)`
 
-## <a id='H-02'></a>H-02. Reentrancy Vulnerability In refund() function
+## [H-2] Reentrancy Vulnerability In refund() function
 
-_Submitted by [philfr](https://profiles.cyfrin.io/u/undefined), [djanerch](https://profiles.cyfrin.io/u/undefined), [0xouooo](https://profiles.cyfrin.io/u/undefined), [inallhonesty](https://profiles.cyfrin.io/u/undefined), [funkornaut](https://profiles.cyfrin.io/u/undefined), [cem](https://profiles.cyfrin.io/u/undefined), [0xbjorn](https://profiles.cyfrin.io/u/undefined), [zac369](https://profiles.cyfrin.io/u/undefined), [jerseyjoewalcott](https://profiles.cyfrin.io/u/undefined), [timenov](https://profiles.cyfrin.io/u/undefined), [ZedBlockchain](https://profiles.cyfrin.io/u/undefined), [alsirang](https://profiles.cyfrin.io/u/undefined), [happyformerlawyer](https://profiles.cyfrin.io/u/undefined), [0xgd](https://profiles.cyfrin.io/u/undefined), [darksnow](https://profiles.cyfrin.io/u/undefined), [0xLuke4G1](https://profiles.cyfrin.io/u/undefined), [SALUTEMADA](https://profiles.cyfrin.io/u/undefined), [robbiesumner](https://profiles.cyfrin.io/u/undefined), [cosine](https://profiles.cyfrin.io/u/undefined), [0xethanol](https://profiles.cyfrin.io/u/undefined), [pacelli](https://profiles.cyfrin.io/u/undefined), [zadev](https://profiles.cyfrin.io/u/undefined), [ararara](https://profiles.cyfrin.io/u/undefined), [0x0noob](https://profiles.cyfrin.io/u/undefined), [ret2basic](https://profiles.cyfrin.io/u/undefined), [sandman](https://profiles.cyfrin.io/u/undefined), [tinotendajoe01](https://profiles.cyfrin.io/u/undefined), [alymurtazamemon](https://profiles.cyfrin.io/u/undefined), [nisedo](https://profiles.cyfrin.io/u/undefined), [anjalit](https://profiles.cyfrin.io/u/undefined), [C0D30](https://profiles.cyfrin.io/u/undefined), [theirrationalone](https://profiles.cyfrin.io/u/undefined), [anarcheuz](https://profiles.cyfrin.io/u/undefined), [Eric](https://profiles.cyfrin.io/u/undefined), [luka](https://profiles.cyfrin.io/u/undefined), [charalab0ts](https://profiles.cyfrin.io/u/undefined), [n4thedev01](https://profiles.cyfrin.io/u/undefined), [dcheng](https://profiles.cyfrin.io/u/undefined), [Omeguhh](https://profiles.cyfrin.io/u/undefined), [shikhar229169](https://profiles.cyfrin.io/u/undefined), [intellygentle](https://profiles.cyfrin.io/u/undefined), [0xfuluz](https://profiles.cyfrin.io/u/undefined), [rapstyle](https://profiles.cyfrin.io/u/undefined), [asimaranov](https://profiles.cyfrin.io/u/undefined), [wallebach](https://profiles.cyfrin.io/u/undefined), [danlipert](https://profiles.cyfrin.io/u/undefined), [MSaptarshi007](https://profiles.cyfrin.io/u/undefined), [y0ng0p3](https://profiles.cyfrin.io/u/undefined), [Aitor](https://profiles.cyfrin.io/u/undefined), [priker](https://profiles.cyfrin.io/u/undefined), [abhishekthakur](https://profiles.cyfrin.io/u/undefined), [Chandr](https://profiles.cyfrin.io/u/undefined), [maanvad3r](https://profiles.cyfrin.io/u/undefined), [0xrex](https://profiles.cyfrin.io/u/undefined), [naman1729](https://profiles.cyfrin.io/u/undefined), [syahirAmali](https://profiles.cyfrin.io/u/undefined), [irondevx](https://profiles.cyfrin.io/u/undefined), [0xnilesh](https://profiles.cyfrin.io/u/undefined), [ryonen](https://profiles.cyfrin.io/u/undefined), [0x4non](https://profiles.cyfrin.io/u/undefined), [dougo](https://profiles.cyfrin.io/u/undefined), [ivanfitro](https://profiles.cyfrin.io/u/undefined), [BowTiedJerboa](https://profiles.cyfrin.io/u/undefined), [DuncanDuMond](https://profiles.cyfrin.io/u/undefined), [zuhaibmohd](https://profiles.cyfrin.io/u/undefined), [0xtekt](https://profiles.cyfrin.io/u/undefined), [Osora9](https://profiles.cyfrin.io/u/undefined), [aethrouzz](https://profiles.cyfrin.io/u/undefined), [Marcologonz](https://profiles.cyfrin.io/u/undefined), [0xspryon](https://profiles.cyfrin.io/u/undefined), [krisrenzo](https://profiles.cyfrin.io/u/undefined), [stakog](https://profiles.cyfrin.io/u/undefined), [0xdark1337](https://profiles.cyfrin.io/u/undefined), [0xdangit](https://profiles.cyfrin.io/u/undefined), [crypt0mate](https://profiles.cyfrin.io/u/undefined), [mibiot13](https://profiles.cyfrin.io/u/undefined), [Leogold](https://profiles.cyfrin.io/u/undefined), [0xswahili](https://profiles.cyfrin.io/u/undefined), [Oozman](https://profiles.cyfrin.io/u/undefined), [zen4269](https://profiles.cyfrin.io/u/undefined), [blocktivist](https://profiles.cyfrin.io/u/undefined), [ezerez](https://profiles.cyfrin.io/u/undefined), [0xsagetony](https://profiles.cyfrin.io/u/undefined), [zxarcs](https://profiles.cyfrin.io/u/undefined), [bube](https://profiles.cyfrin.io/u/undefined), [n0kto](https://profiles.cyfrin.io/u/undefined), [sm4rty](https://profiles.cyfrin.io/u/undefined), [David77](https://profiles.cyfrin.io/u/undefined), [0xKriLuv](https://profiles.cyfrin.io/u/undefined), [contractsecure](https://profiles.cyfrin.io/u/undefined), [sobieski](https://profiles.cyfrin.io/u/undefined), [Zurriken](https://profiles.cyfrin.io/u/undefined), [innertia](https://profiles.cyfrin.io/u/undefined), [WangSecurity](https://profiles.cyfrin.io/u/undefined), [0xrochimaru](https://profiles.cyfrin.io/u/undefined), [0xSimeon](https://profiles.cyfrin.io/u/undefined), [iLoveMiaGoth](https://profiles.cyfrin.io/u/undefined), [ironcladmerc](https://profiles.cyfrin.io/u/undefined), [Awacs](https://profiles.cyfrin.io/u/undefined), [emanherawy](https://profiles.cyfrin.io/u/undefined), [firmanregar](https://profiles.cyfrin.io/u/undefined), [00decree](https://profiles.cyfrin.io/u/undefined), [Nocturnus](https://profiles.cyfrin.io/u/undefined), [silvana](https://profiles.cyfrin.io/u/undefined), [hueber](https://profiles.cyfrin.io/u/undefined), [0xJimbo](https://profiles.cyfrin.io/u/undefined), [kose](https://profiles.cyfrin.io/u/undefined), [Dutch](https://profiles.cyfrin.io/u/undefined), [denzi](https://profiles.cyfrin.io/u/undefined), [0xlouistsai](https://profiles.cyfrin.io/u/undefined), [ETHANHUNTIMF99](https://profiles.cyfrin.io/u/undefined), [0xjarix](https://profiles.cyfrin.io/u/undefined), [0xhashiman](https://profiles.cyfrin.io/u/undefined), [ciaranightingale](https://profiles.cyfrin.io/u/undefined), [Heba](https://profiles.cyfrin.io/u/undefined), [codyx](https://profiles.cyfrin.io/u/undefined), [musashi](https://profiles.cyfrin.io/u/undefined), [0x0bserver](https://profiles.cyfrin.io/u/undefined). Selected submission by: [charalab0ts](https://profiles.cyfrin.io/u/undefined)._
-
-### Relevant GitHub Links
-
-https://github.com/Cyfrin/2023-10-Puppy-Raffle/blob/07399f4d02520a2abf6f462c024842e495ca82e4/src/PuppyRaffle.sol#L96C4-L105C6
-
-## Summary
+**Summary**
 
 The `PuppyRaffle::refund()` function doesn't have any mechanism to prevent a reentrancy attack and doesn't follow the Check-effects-interactions pattern
 
-## Vulnerability Details
+**Vulnerability Details**
 
 ```javascript
 function refund(uint256 playerIndex) public {
@@ -101,7 +43,7 @@ function refund(uint256 playerIndex) public {
 
 In the provided PuppyRaffle contract is potentially vulnerable to reentrancy attacks. This is because it first sends Ether to msg.sender and then updates the state of the contract.a malicious contract could re-enter the refund function before the state is updated.
 
-## Impact
+**Impact**
 
 If exploited, this vulnerability could allow a malicious contract to drain Ether from the PuppyRaffle contract, leading to loss of funds for the contract and its users.
 
@@ -114,7 +56,7 @@ PuppyRaffle.players (src/PuppyRaffle.sol#23) can be used in cross function reent
 - PuppyRaffle.selectWinner() (src/PuppyRaffle.sol#125-154)
 ```
 
-## POC
+**POC**
 
 <details>
 
@@ -163,11 +105,11 @@ we create a malicious contract (AttackContract) that enters the raffle and then 
 
 </details>
 
-## Tools Used
+**Tools Used**
 
 Manual Review
 
-## Recommendations
+**Recommendations**
 
 To mitigate the reentrancy vulnerability, you should follow the Checks-Effects-Interactions pattern. This pattern suggests that you should make any state changes before calling external contracts or sending Ether.
 
@@ -193,31 +135,25 @@ require(success, "PuppyRaffle: Failed to refund");
 
 This way, even if the msg.sender is a malicious contract that tries to re-enter the refund function, it will fail the require check because the player's address has already been set to address(0).Also we changed the event is emitted before the external call, and the external call is the last step in the function. This mitigates the risk of a reentrancy attack.
 
-## <a id='H-03'></a>H-03. Randomness can be gamed
+## [H-3] Randomness can be gamed
 
-_Submitted by [philfr](https://profiles.cyfrin.io/u/undefined), [0xethanol](https://profiles.cyfrin.io/u/undefined), [0xLuke4G1](https://profiles.cyfrin.io/u/undefined), [0xouooo](https://profiles.cyfrin.io/u/undefined), [whiteh4t9527](https://profiles.cyfrin.io/u/undefined), [inallhonesty](https://profiles.cyfrin.io/u/undefined), [happyformerlawyer](https://profiles.cyfrin.io/u/undefined), [efecarranza](https://profiles.cyfrin.io/u/undefined), [cem](https://profiles.cyfrin.io/u/undefined), [zac369](https://profiles.cyfrin.io/u/undefined), [ZedBlockchain](https://profiles.cyfrin.io/u/undefined), [anjalit](https://profiles.cyfrin.io/u/undefined), [darksnow](https://profiles.cyfrin.io/u/undefined), [timenov](https://profiles.cyfrin.io/u/undefined), [0x6a70](https://profiles.cyfrin.io/u/undefined), [rapstyle](https://profiles.cyfrin.io/u/undefined), [cosine](https://profiles.cyfrin.io/u/undefined), [zadev](https://profiles.cyfrin.io/u/undefined), [eeshenggoh](https://profiles.cyfrin.io/u/undefined), [merlinboii](https://profiles.cyfrin.io/u/undefined), [0xaraj](https://profiles.cyfrin.io/u/undefined), [ret2basic](https://profiles.cyfrin.io/u/undefined), [0x0noob](https://profiles.cyfrin.io/u/undefined), [nisedo](https://profiles.cyfrin.io/u/undefined), [tinotendajoe01](https://profiles.cyfrin.io/u/undefined), [0xWalle](https://profiles.cyfrin.io/u/undefined), [C0D30](https://profiles.cyfrin.io/u/undefined), [anarcheuz](https://profiles.cyfrin.io/u/undefined), [0xswahili](https://profiles.cyfrin.io/u/undefined), [alymurtazamemon](https://profiles.cyfrin.io/u/undefined), [ThermoHash](https://profiles.cyfrin.io/u/undefined), [pacelli](https://profiles.cyfrin.io/u/undefined), [sandman](https://profiles.cyfrin.io/u/undefined), [wallebach](https://profiles.cyfrin.io/u/undefined), [mahivasisth](https://profiles.cyfrin.io/u/undefined), [icebear](https://profiles.cyfrin.io/u/undefined), [luka](https://profiles.cyfrin.io/u/undefined), [slasheur](https://profiles.cyfrin.io/u/undefined), [banditxbt](https://profiles.cyfrin.io/u/undefined), [SaudxInu](https://profiles.cyfrin.io/u/undefined), [asimaranov](https://profiles.cyfrin.io/u/undefined), [danlipert](https://profiles.cyfrin.io/u/undefined), [y0ng0p3](https://profiles.cyfrin.io/u/undefined), [Aitor](https://profiles.cyfrin.io/u/undefined), [priker](https://profiles.cyfrin.io/u/undefined), [Chandr](https://profiles.cyfrin.io/u/undefined), [dougo](https://profiles.cyfrin.io/u/undefined), [maanvad3r](https://profiles.cyfrin.io/u/undefined), [silverwind](https://profiles.cyfrin.io/u/undefined), [dentonylifer](https://profiles.cyfrin.io/u/undefined), [0xtheblackpanther](https://profiles.cyfrin.io/u/undefined), [irondevx](https://profiles.cyfrin.io/u/undefined), [ryonen](https://profiles.cyfrin.io/u/undefined), [0xVinylDavyl](https://profiles.cyfrin.io/u/undefined), [0x4non](https://profiles.cyfrin.io/u/undefined), [kiteweb3](https://profiles.cyfrin.io/u/undefined), [ararara](https://profiles.cyfrin.io/u/undefined), [elser17](https://profiles.cyfrin.io/u/undefined), [naman1729](https://profiles.cyfrin.io/u/undefined), [DuncanDuMond](https://profiles.cyfrin.io/u/undefined), [abhishekthakur](https://profiles.cyfrin.io/u/undefined), [syahirAmali](https://profiles.cyfrin.io/u/undefined), [zuhaibmohd](https://profiles.cyfrin.io/u/undefined), [AnouarBF](https://profiles.cyfrin.io/u/undefined), [Marcologonz](https://profiles.cyfrin.io/u/undefined), [krisrenzo](https://profiles.cyfrin.io/u/undefined), [aethrouzz](https://profiles.cyfrin.io/u/undefined), [zhuying](https://profiles.cyfrin.io/u/undefined), [0xspryon](https://profiles.cyfrin.io/u/undefined), [maroutis](https://profiles.cyfrin.io/u/undefined), [0xdark1337](https://profiles.cyfrin.io/u/undefined), [ro1sharkm](https://profiles.cyfrin.io/u/undefined), [Osora9](https://profiles.cyfrin.io/u/undefined), [0xrex](https://profiles.cyfrin.io/u/undefined), [0xnilesh](https://profiles.cyfrin.io/u/undefined), [zen4269](https://profiles.cyfrin.io/u/undefined), [zxarcs](https://profiles.cyfrin.io/u/undefined), [bube](https://profiles.cyfrin.io/u/undefined), [blocktivist](https://profiles.cyfrin.io/u/undefined), [kumar](https://profiles.cyfrin.io/u/undefined), [n0kto](https://profiles.cyfrin.io/u/undefined), [sh0lt0](https://profiles.cyfrin.io/u/undefined), [sm4rty](https://profiles.cyfrin.io/u/undefined), [NeoRusI](https://profiles.cyfrin.io/u/undefined), [ugrru](https://profiles.cyfrin.io/u/undefined), [theinstructor](https://profiles.cyfrin.io/u/undefined), [sobieski](https://profiles.cyfrin.io/u/undefined), [dcheng](https://profiles.cyfrin.io/u/undefined), [0xsagetony](https://profiles.cyfrin.io/u/undefined), [0xscsamurai](https://profiles.cyfrin.io/u/undefined), [benbo](https://profiles.cyfrin.io/u/undefined), [0xMUSA1337](https://profiles.cyfrin.io/u/undefined), [innertia](https://profiles.cyfrin.io/u/undefined), [coffee](https://profiles.cyfrin.io/u/undefined), [0xtekt](https://profiles.cyfrin.io/u/undefined), [MikeDougherty](https://profiles.cyfrin.io/u/undefined), [ironcladmerc](https://profiles.cyfrin.io/u/undefined), [iLoveMiaGoth](https://profiles.cyfrin.io/u/undefined), [Awacs](https://profiles.cyfrin.io/u/undefined), [EchoSpr](https://profiles.cyfrin.io/u/undefined), [0xabhayy](https://profiles.cyfrin.io/u/undefined), [firmanregar](https://profiles.cyfrin.io/u/undefined), [emanherawy](https://profiles.cyfrin.io/u/undefined), [pratred](https://profiles.cyfrin.io/u/undefined), [Nocturnus](https://profiles.cyfrin.io/u/undefined), [denzi](https://profiles.cyfrin.io/u/undefined), [remedcu](https://profiles.cyfrin.io/u/undefined), [Dutch](https://profiles.cyfrin.io/u/undefined), [equious](https://profiles.cyfrin.io/u/undefined), [0xJimbo](https://profiles.cyfrin.io/u/undefined), [0xlemon](https://profiles.cyfrin.io/u/undefined), [ciaranightingale](https://profiles.cyfrin.io/u/undefined), [kose](https://profiles.cyfrin.io/u/undefined), [silvana](https://profiles.cyfrin.io/u/undefined), [hueber](https://profiles.cyfrin.io/u/undefined), [ezerez](https://profiles.cyfrin.io/u/undefined), [Oozman](https://profiles.cyfrin.io/u/undefined), [harpaljadeja](https://profiles.cyfrin.io/u/undefined), [musashi](https://profiles.cyfrin.io/u/undefined), [robbiesumner](https://profiles.cyfrin.io/u/undefined), [damoklov](https://profiles.cyfrin.io/u/undefined), [cromewar](https://profiles.cyfrin.io/u/undefined), [printfjoby](https://profiles.cyfrin.io/u/undefined), [0xhashiman](https://profiles.cyfrin.io/u/undefined), [0xth30r3m](https://profiles.cyfrin.io/u/undefined), [codyx](https://profiles.cyfrin.io/u/undefined), [Leogold](https://profiles.cyfrin.io/u/undefined), [0xlouistsai](https://profiles.cyfrin.io/u/undefined), [davide](https://profiles.cyfrin.io/u/undefined), [0x0bserver](https://profiles.cyfrin.io/u/undefined). Selected submission by: [efecarranza](https://profiles.cyfrin.io/u/undefined)._
-
-### Relevant GitHub Links
-
-https://github.com/Cyfrin/2023-10-Puppy-Raffle/blob/main/src/PuppyRaffle.sol#L128
-
-## Summary
+**Summary**
 
 The randomness to select a winner can be gamed and an attacker can be chosen as winner without random element.
 
-## Vulnerability Details
+**Vulnerability Details**
 
 Because all the variables to get a random winner on the contract are blockchain variables and are known, a malicious actor can use a smart contract to game the system and receive all funds and the NFT.
 
-## Impact
+**Impact**
 
 Critical
 
-## Tools Used
+**Tools Used**
 
 Foundry
 
-## POC
+**POC**
 
 ```javascript
 // SPDX-License-Identifier: No-License
@@ -287,13 +223,11 @@ contract Attack {
 }
 ```
 
-## Recommendations
+**Recommendations**
 
 Use Chainlink's VRF to generate a random number to select the winner. Patrick will be proud.
 
-## <a id='H-04'></a>H-04. `PuppyRaffle::refund` replaces an index with address(0) which can cause the function `PuppyRaffle::selectWinner` to always revert
-
-_Submitted by [0xethanol](https://profiles.cyfrin.io/u/undefined), [efecarranza](https://profiles.cyfrin.io/u/undefined), [shikhar229169](https://profiles.cyfrin.io/u/undefined), [happyformerlawyer](https://profiles.cyfrin.io/u/undefined), [zach030](https://profiles.cyfrin.io/u/undefined), [cem](https://profiles.cyfrin.io/u/undefined), [0xaraj](https://profiles.cyfrin.io/u/undefined), [ZedBlockchain](https://profiles.cyfrin.io/u/undefined), [0x6a70](https://profiles.cyfrin.io/u/undefined), [inallhonesty](https://profiles.cyfrin.io/u/undefined), [ararara](https://profiles.cyfrin.io/u/undefined), [sandman](https://profiles.cyfrin.io/u/undefined), [merlinboii](https://profiles.cyfrin.io/u/undefined), [nisedo](https://profiles.cyfrin.io/u/undefined), [0xWalle](https://profiles.cyfrin.io/u/undefined), [Eric](https://profiles.cyfrin.io/u/undefined), [ThermoHash](https://profiles.cyfrin.io/u/undefined), [naman1729](https://profiles.cyfrin.io/u/undefined), [luka](https://profiles.cyfrin.io/u/undefined), [asimaranov](https://profiles.cyfrin.io/u/undefined), [wallebach](https://profiles.cyfrin.io/u/undefined), [pacelli](https://profiles.cyfrin.io/u/undefined), [danielvo102](https://profiles.cyfrin.io/u/undefined), [priker](https://profiles.cyfrin.io/u/undefined), [dentonylifer](https://profiles.cyfrin.io/u/undefined), [ryonen](https://profiles.cyfrin.io/u/undefined), [ivanfitro](https://profiles.cyfrin.io/u/undefined), [davide](https://profiles.cyfrin.io/u/undefined), [elser17](https://profiles.cyfrin.io/u/undefined), [zhuying](https://profiles.cyfrin.io/u/undefined), [Marcologonz](https://profiles.cyfrin.io/u/undefined), [0xspryon](https://profiles.cyfrin.io/u/undefined), [krisrenzo](https://profiles.cyfrin.io/u/undefined), [maroutis](https://profiles.cyfrin.io/u/undefined), [0xrochimaru](https://profiles.cyfrin.io/u/undefined), [TheCodingCanuck](https://profiles.cyfrin.io/u/undefined), [Leogold](https://profiles.cyfrin.io/u/undefined), [blocktivist](https://profiles.cyfrin.io/u/undefined), [ezerez](https://profiles.cyfrin.io/u/undefined), [kumar](https://profiles.cyfrin.io/u/undefined), [0xouooo](https://profiles.cyfrin.io/u/undefined), [zxarcs](https://profiles.cyfrin.io/u/undefined), [benbo](https://profiles.cyfrin.io/u/undefined), [sobieski](https://profiles.cyfrin.io/u/undefined), [uint256vieet](https://profiles.cyfrin.io/u/undefined), [innertia](https://profiles.cyfrin.io/u/undefined), [WangSecurity](https://profiles.cyfrin.io/u/undefined), [coffee](https://profiles.cyfrin.io/u/undefined), [iLoveMiaGoth](https://profiles.cyfrin.io/u/undefined), [0xswahili](https://profiles.cyfrin.io/u/undefined), [emanherawy](https://profiles.cyfrin.io/u/undefined), [Nocturnus](https://profiles.cyfrin.io/u/undefined), [pratred](https://profiles.cyfrin.io/u/undefined), [silvana](https://profiles.cyfrin.io/u/undefined), [kose](https://profiles.cyfrin.io/u/undefined), [0xlemon](https://profiles.cyfrin.io/u/undefined), [equious](https://profiles.cyfrin.io/u/undefined), [cromewar](https://profiles.cyfrin.io/u/undefined), [0xlouistsai](https://profiles.cyfrin.io/u/undefined), [printfjoby](https://profiles.cyfrin.io/u/undefined), [ciaranightingale](https://profiles.cyfrin.io/u/undefined), [jasmine](https://profiles.cyfrin.io/u/undefined), [Heba](https://profiles.cyfrin.io/u/undefined), [remedcu](https://profiles.cyfrin.io/u/undefined), [hueber](https://profiles.cyfrin.io/u/undefined), [0x0bserver](https://profiles.cyfrin.io/u/undefined). Selected submission by: [maroutis](https://profiles.cyfrin.io/u/undefined)._
+## [H-4] `PuppyRaffle::refund` replaces an index with address(0) which can cause the function `PuppyRaffle::selectWinner` to always revert
 
 ### Relevant GitHub Links
 

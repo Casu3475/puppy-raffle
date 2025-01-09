@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import {Test, console} from "forge-std/Test.sol";
 import {PuppyRaffle} from "../src/PuppyRaffle.sol";
 
+
 contract PuppyRaffleTest is Test {
     PuppyRaffle puppyRaffle;
     uint256 entranceFee = 1e18;
@@ -14,6 +15,7 @@ contract PuppyRaffleTest is Test {
     address playerFour = address(4);
     address feeAddress = address(99);
     uint256 duration = 1 days;
+    
 
     function setUp() public {
         puppyRaffle = new PuppyRaffle(
@@ -254,73 +256,74 @@ function testTotalFeesOverflow() public playersEntered {
     /////////////////////////////////////
     /// Test Denial of Service       ///
     ////////////////////////////////////
-    function testEnterRaffleIsGasInefficient() public {
-        vm.startPrank(owner);
+    function testReadDuplicateGasCosts() public {
         vm.txGasPrice(1);
- 
-        /// First we enter 100 participants
-        uint256 firstBatch = 100;
-        address[] memory firstBatchPlayers = new address[](firstBatch);
-        for(uint256 i = 0; i < firstBatchPlayers; i++) {
-        firstBatch[i] = address(i);
-        }
 
+        // We will enter 5 players into the raffle
+        uint256 playersNum = 100;
+        address[] memory players = new address[](playersNum);
+        for (uint256 i = 0; i < playersNum; i++) {
+            players[i] = address(i); 
+        }
+        // And see how much gas it cost to enter
         uint256 gasStart = gasleft();
-        puppyRaffle.enterRaffle{value: entranceFee * firstBatch}(firstBatchPlayers);
+        puppyRaffle.enterRaffle{value: entranceFee * playersNum}(players);
         uint256 gasEnd = gasleft();
-        uint256 gasUsedForFirstBatch = (gasStart - gasEnd) * txPrice;
-        console.log("Gas cost of the first 100 partipants is:", gasUsedForFirstBatch);
+        uint256 gasUsedFirst = (gasStart - gasEnd) * tx.gasprice;
+        console.log("Gas cost of the 1st 100 players:", gasUsedFirst);
 
-        /// Now we enter 100 more participants
-        uint256 secondBatch = 200;
-        address[] memory secondBatchPlayers = new address[](secondBatch);
-        for(uint256 i = 100; i < secondBatchPlayers; i++) {
-        secondBatch[i] = address(i);
+        // We will enter 5 more players into the raffle
+        for (uint256 i = 0; i < playersNum; i++) {
+            players[i] = address(i + playersNum);
         }
-  
+        // And see how much more expensive it is
         gasStart = gasleft();
-        puppyRaffle.enterRaffle{value: entranceFee * secondBatch}(secondBatchPlayers);
+        puppyRaffle.enterRaffle{value: entranceFee * playersNum}(players);
         gasEnd = gasleft();
-        uint256 gasUsedForSecondBatch = (gasStart - gasEnd) * txPrice;
-        console.log("Gas cost of the next 100 participant is:", gasUsedForSecondBatch);
-        vm.stopPrank(owner);
+        uint256 gasUsedSecond = (gasStart - gasEnd) * tx.gasprice;
+        console.log("Gas cost of the 2nd 100 players:", gasUsedSecond);
+
+        assert(gasUsedFirst < gasUsedSecond);
+        // Logs:
+        //     Gas cost of the 1st 100 players: 6252039
+        //     Gas cost of the 2nd 100 players: 18067741
 }
 
      ///////////////////////////////////
      /// Test Reentrancy            ///
     //////////////////////////////////
     
-contract AttackContract {
-    PuppyRaffle public puppyRaffle;
-    uint256 public receivedEther;
+// contract AttackContract {
+//     PuppyRaffle public puppyRaffle;
+//     uint256 public receivedEther;
 
-    constructor(PuppyRaffle _puppyRaffle) {
-        puppyRaffle = _puppyRaffle;
-    }
+//     constructor(PuppyRaffle _puppyRaffle) {
+//         puppyRaffle = _puppyRaffle;
+//     }
 
-    function attack() public payable {
-        require(msg.value > 0);
+//     function attack() public payable {
+//         require(msg.value > 0);
 
-        // Create a dynamic array and push the sender's address
-        address[] memory players = new address[](1);
-        players[0] = address(this);
+//         // Create a dynamic array and push the sender's address
+//         address[] memory players = new address[](1);
+//         players[0] = address(this);
 
-        puppyRaffle.enterRaffle{value: msg.value}(players);
-    }
+//         puppyRaffle.enterRaffle{value: msg.value}(players);
+//     }
 
-    fallback() external payable {
-        if (address(puppyRaffle).balance >= msg.value) {
-            receivedEther += msg.value;
+//     fallback() external payable {
+//         if (address(puppyRaffle).balance >= msg.value) {
+//             receivedEther += msg.value;
 
-            // Find the index of the sender's address
-            uint256 playerIndex = puppyRaffle.getActivePlayerIndex(address(this));
+//             // Find the index of the sender's address
+//             uint256 playerIndex = puppyRaffle.getActivePlayerIndex(address(this));
 
-            if (playerIndex > 0) {
-                // Refund the sender if they are in the raffle
-                puppyRaffle.refund(playerIndex);
-            }
-        }
-    }
-}
+//             if (playerIndex > 0) {
+//                 // Refund the sender if they are in the raffle
+//                 puppyRaffle.refund(playerIndex);
+//             }
+//         }
+//     }
+// }
 
 }
